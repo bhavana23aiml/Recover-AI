@@ -1,0 +1,17 @@
+# RecoverAI canonical safety configuration.
+# rules.md is the documentation authority for these values.
+
+
+MAX_RETRIES = 2
+
+MIN_CONFIDENCE_AUTO_EXECUTE = 0.80
+
+MIN_CONFIDENCE_ANY_ACTION = 0.50
+
+RETRY_COOLDOWN_MINUTES = 15
+
+DUPLICATE_WINDOW_SECONDS = 30
+
+MAX_RECOVERABLE_AMOUNT_AUTO = 50_000
+
+STOP_ON_CONSECUTIVE_FAILURES = 2
