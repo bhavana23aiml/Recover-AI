@@ -1,6 +1,13 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, status
+import json
+
+from fastapi import (
+    APIRouter,
+    HTTPException,
+    Request,
+    status,
+)
 
 from schemas.razorpay import (
     RazorpayRecoveryOrderRequest,
@@ -12,8 +19,14 @@ from schemas.razorpay import (
 )
 
 from services.persistence_service import (
+    append_audit_event,
+    complete_webhook_event,
+    fail_webhook_event,
     get_recovery_job,
+    get_recovery_job_by_razorpay_order_id,
     get_transaction,
+    ignore_webhook_event,
+    reserve_webhook_event,
     save_razorpay_order,
     save_verified_payment,
 )
@@ -22,11 +35,12 @@ from services.razorpay_service import (
     RazorpayConfigurationError,
     RazorpayVerificationError,
     create_test_order,
-    fetch_payment,
     fetch_order_payments,
+    fetch_payment,
     get_razorpay_key_id,
     razorpay_enabled,
     verify_payment_signature,
+    verify_webhook_signature,
 )
 
 
@@ -51,9 +65,17 @@ router = APIRouter(
 def create_recovery_order(
     request: RazorpayRecoveryOrderRequest,
 ) -> RazorpayRecoveryOrderResponse:
+    """
+    Create or reuse a Razorpay Test Mode order for a
+    guardrail-approved RecoverAI recovery job.
+
+    The frontend supplies only recovery_job_id.
+
+    Trusted amount and currency come from persistence.
+    """
 
     # -----------------------------------------------------
-    # Razorpay integration must be explicitly enabled
+    # Razorpay must be explicitly enabled
     # -----------------------------------------------------
 
     if not razorpay_enabled():
@@ -66,7 +88,7 @@ def create_recovery_order(
         )
 
     # -----------------------------------------------------
-    # Load trusted recovery job
+    # Load recovery job
     # -----------------------------------------------------
 
     job = get_recovery_job(
@@ -80,7 +102,7 @@ def create_recovery_order(
         )
 
     # -----------------------------------------------------
-    # RecoverAI guardrail boundary
+    # Guardrail boundary
     # -----------------------------------------------------
 
     if job.get("guardrail_status") != "ALLOWED":
@@ -94,7 +116,7 @@ def create_recovery_order(
         )
 
     # -----------------------------------------------------
-    # Persistent execution safety
+    # Persistent execution state
     # -----------------------------------------------------
 
     idempotency_state = job.get(
@@ -140,12 +162,6 @@ def create_recovery_order(
             ),
         )
 
-    # -----------------------------------------------------
-    # Amount is loaded from backend persistence.
-    #
-    # Frontend never decides the amount.
-    # -----------------------------------------------------
-
     amount_paise = int(
         transaction["amount_paise"]
     )
@@ -158,12 +174,7 @@ def create_recovery_order(
     )
 
     # -----------------------------------------------------
-    # Razorpay order idempotency
-    # -----------------------------------------------------
-    #
-    # If this RecoverAI recovery job already owns a
-    # Razorpay order, return it instead of creating
-    # another order.
+    # Order idempotency
     # -----------------------------------------------------
 
     existing_order_id = job.get(
@@ -172,11 +183,15 @@ def create_recovery_order(
 
     if existing_order_id:
         return RazorpayRecoveryOrderResponse(
-            recovery_job_id=str(job["id"]),
-            razorpay_order_id=existing_order_id,
+            recovery_job_id=str(
+                job["id"]
+            ),
+            razorpay_order_id=str(
+                existing_order_id
+            ),
             amount_paise=amount_paise,
             currency=currency,
-            status=(
+            status=str(
                 job.get(
                     "razorpay_order_status"
                 )
@@ -231,10 +246,6 @@ def create_recovery_order(
             ),
         ) from exc
 
-    # -----------------------------------------------------
-    # Validate Razorpay response
-    # -----------------------------------------------------
-
     razorpay_order_id = order.get(
         "id"
     )
@@ -256,18 +267,26 @@ def create_recovery_order(
     )
 
     # -----------------------------------------------------
-    # Persist Razorpay order
+    # Persist gateway order
     # -----------------------------------------------------
 
     save_razorpay_order(
-        job_id=str(job["id"]),
-        razorpay_order_id=razorpay_order_id,
+        job_id=str(
+            job["id"]
+        ),
+        razorpay_order_id=str(
+            razorpay_order_id
+        ),
         order_status=order_status,
     )
 
     return RazorpayRecoveryOrderResponse(
-        recovery_job_id=str(job["id"]),
-        razorpay_order_id=razorpay_order_id,
+        recovery_job_id=str(
+            job["id"]
+        ),
+        razorpay_order_id=str(
+            razorpay_order_id
+        ),
         amount_paise=amount_paise,
         currency=currency,
         status=order_status,
@@ -287,10 +306,19 @@ def create_recovery_order(
 def verify_recovery_payment(
     request: RazorpayVerifyPaymentRequest,
 ) -> RazorpayVerifyPaymentResponse:
+    """
+    Verify Razorpay Checkout success.
 
-    # -----------------------------------------------------
-    # Razorpay must be enabled
-    # -----------------------------------------------------
+    Verification requires:
+    - RecoverAI recovery job
+    - guardrail approval
+    - persisted order match
+    - cryptographic signature
+    - independent Razorpay payment fetch
+    - amount match
+    - currency match
+    - CAPTURED status
+    """
 
     if not razorpay_enabled():
         raise HTTPException(
@@ -302,7 +330,7 @@ def verify_recovery_payment(
         )
 
     # -----------------------------------------------------
-    # Load trusted recovery job
+    # Load recovery job
     # -----------------------------------------------------
 
     job = get_recovery_job(
@@ -316,7 +344,7 @@ def verify_recovery_payment(
         )
 
     # -----------------------------------------------------
-    # Guardrail boundary
+    # Guardrail check
     # -----------------------------------------------------
 
     if job.get("guardrail_status") != "ALLOWED":
@@ -330,7 +358,7 @@ def verify_recovery_payment(
         )
 
     # -----------------------------------------------------
-    # Persisted order is authoritative
+    # Trusted persisted order
     # -----------------------------------------------------
 
     persisted_order_id = job.get(
@@ -346,9 +374,9 @@ def verify_recovery_payment(
             ),
         )
 
-    # -----------------------------------------------------
-    # Browser order ID must match persisted order
-    # -----------------------------------------------------
+    persisted_order_id = str(
+        persisted_order_id
+    )
 
     if (
         request.razorpay_order_id
@@ -378,6 +406,9 @@ def verify_recovery_payment(
     ).lower()
 
     if existing_payment_id:
+        existing_payment_id = str(
+            existing_payment_id
+        )
 
         if (
             existing_payment_id
@@ -392,7 +423,10 @@ def verify_recovery_payment(
                 ),
             )
 
-        if existing_payment_status != "captured":
+        if (
+            existing_payment_status
+            != "captured"
+        ):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=(
@@ -402,22 +436,22 @@ def verify_recovery_payment(
             )
 
         return RazorpayVerifyPaymentResponse(
-            recovery_job_id=str(job["id"]),
-            razorpay_order_id=persisted_order_id,
-            razorpay_payment_id=existing_payment_id,
+            recovery_job_id=str(
+                job["id"]
+            ),
+            razorpay_order_id=(
+                persisted_order_id
+            ),
+            razorpay_payment_id=(
+                existing_payment_id
+            ),
             payment_status="captured",
             verified=True,
             execution_mode="RAZORPAY_TEST",
         )
 
     # -----------------------------------------------------
-    # Verify Razorpay checkout signature
-    # -----------------------------------------------------
-    #
-    # IMPORTANT:
-    #
-    # We use persisted_order_id instead of trusting
-    # the order ID provided by the browser.
+    # Cryptographic Checkout signature verification
     # -----------------------------------------------------
 
     try:
@@ -443,7 +477,7 @@ def verify_recovery_payment(
         ) from exc
 
     # -----------------------------------------------------
-    # Independently fetch payment from Razorpay
+    # Independent payment fetch
     # -----------------------------------------------------
 
     try:
@@ -467,14 +501,20 @@ def verify_recovery_payment(
         ) from exc
 
     # -----------------------------------------------------
-    # Verify payment → order relationship
+    # Order association
     # -----------------------------------------------------
 
-    gateway_order_id = payment.get(
-        "order_id"
+    gateway_order_id = str(
+        payment.get(
+            "order_id",
+            "",
+        )
     )
 
-    if gateway_order_id != persisted_order_id:
+    if (
+        gateway_order_id
+        != persisted_order_id
+    ):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=(
@@ -484,11 +524,13 @@ def verify_recovery_payment(
         )
 
     # -----------------------------------------------------
-    # Load trusted transaction
+    # Trusted RecoverAI transaction
     # -----------------------------------------------------
 
     transaction = get_transaction(
-        job["transaction_id"]
+        str(
+            job["transaction_id"]
+        )
     )
 
     if transaction is None:
@@ -499,10 +541,6 @@ def verify_recovery_payment(
                 "not be found."
             ),
         )
-
-    # -----------------------------------------------------
-    # Verify amount
-    # -----------------------------------------------------
 
     expected_amount_paise = int(
         transaction["amount_paise"]
@@ -541,7 +579,7 @@ def verify_recovery_payment(
         )
 
     # -----------------------------------------------------
-    # Verify currency
+    # Currency
     # -----------------------------------------------------
 
     expected_currency = str(
@@ -558,7 +596,10 @@ def verify_recovery_payment(
         )
     )
 
-    if gateway_currency != expected_currency:
+    if (
+        gateway_currency
+        != expected_currency
+    ):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=(
@@ -568,7 +609,7 @@ def verify_recovery_payment(
         )
 
     # -----------------------------------------------------
-    # Verify captured status
+    # Captured status
     # -----------------------------------------------------
 
     payment_status = str(
@@ -590,24 +631,26 @@ def verify_recovery_payment(
         )
 
     # -----------------------------------------------------
-    # Persist verified gateway payment
+    # Persist verified payment
     # -----------------------------------------------------
 
     save_verified_payment(
-        job_id=str(job["id"]),
+        job_id=str(
+            job["id"]
+        ),
         razorpay_payment_id=(
             request.razorpay_payment_id
         ),
         payment_status=payment_status,
     )
 
-    # -----------------------------------------------------
-    # Return verified result
-    # -----------------------------------------------------
-
     return RazorpayVerifyPaymentResponse(
-        recovery_job_id=str(job["id"]),
-        razorpay_order_id=persisted_order_id,
+        recovery_job_id=str(
+            job["id"]
+        ),
+        razorpay_order_id=(
+            persisted_order_id
+        ),
         razorpay_payment_id=(
             request.razorpay_payment_id
         ),
@@ -620,24 +663,6 @@ def verify_recovery_payment(
 # =========================================================
 # RECONCILE PAYMENT
 # =========================================================
-#
-# This endpoint handles an important real-world case:
-#
-# Razorpay payment succeeds
-#        ↓
-# browser callback / verification call fails
-#        ↓
-# RecoverAI independently asks Razorpay for payments
-# belonging to the persisted order
-#        ↓
-# captured payment discovered
-#        ↓
-# amount + currency + order verified
-#        ↓
-# verified payment persisted
-#
-# Frontend supplies ONLY recovery_job_id.
-# =========================================================
 
 @router.post(
     "/reconcile-payment",
@@ -646,10 +671,12 @@ def verify_recovery_payment(
 def reconcile_recovery_payment(
     request: RazorpayReconcilePaymentRequest,
 ) -> RazorpayReconcilePaymentResponse:
+    """
+    Recover gateway truth when browser verification
+    fails after a Razorpay payment has already succeeded.
 
-    # -----------------------------------------------------
-    # Razorpay must be enabled
-    # -----------------------------------------------------
+    Frontend supplies only recovery_job_id.
+    """
 
     if not razorpay_enabled():
         raise HTTPException(
@@ -661,7 +688,7 @@ def reconcile_recovery_payment(
         )
 
     # -----------------------------------------------------
-    # Load trusted recovery job
+    # Recovery job
     # -----------------------------------------------------
 
     job = get_recovery_job(
@@ -674,10 +701,6 @@ def reconcile_recovery_payment(
             detail="Recovery job not found.",
         )
 
-    # -----------------------------------------------------
-    # RecoverAI guardrail boundary
-    # -----------------------------------------------------
-
     if job.get("guardrail_status") != "ALLOWED":
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -689,7 +712,7 @@ def reconcile_recovery_payment(
         )
 
     # -----------------------------------------------------
-    # Persisted order is authoritative
+    # Persisted order
     # -----------------------------------------------------
 
     order_id = job.get(
@@ -705,8 +728,12 @@ def reconcile_recovery_payment(
             ),
         )
 
+    order_id = str(
+        order_id
+    )
+
     # -----------------------------------------------------
-    # Load trusted RecoverAI transaction
+    # Trusted transaction
     # -----------------------------------------------------
 
     transaction_id = str(
@@ -738,11 +765,7 @@ def reconcile_recovery_payment(
     )
 
     # -----------------------------------------------------
-    # Reconciliation idempotency
-    # -----------------------------------------------------
-    #
-    # If the job already has a captured payment,
-    # simply return the trusted persisted result.
+    # Already reconciled / verified
     # -----------------------------------------------------
 
     existing_payment_id = job.get(
@@ -758,26 +781,35 @@ def reconcile_recovery_payment(
 
     if (
         existing_payment_id
-        and existing_payment_status == "captured"
+        and existing_payment_status
+        == "captured"
     ):
         return RazorpayReconcilePaymentResponse(
-            recovery_job_id=str(job["id"]),
-            transaction_id=transaction_id,
-            razorpay_order_id=order_id,
-            razorpay_payment_id=(
+            recovery_job_id=str(
+                job["id"]
+            ),
+            transaction_id=(
+                transaction_id
+            ),
+            razorpay_order_id=(
+                order_id
+            ),
+            razorpay_payment_id=str(
                 existing_payment_id
             ),
             amount_paise=(
                 expected_amount_paise
             ),
-            currency=expected_currency,
+            currency=(
+                expected_currency
+            ),
             payment_status="captured",
             reconciled=True,
             execution_mode="RAZORPAY_TEST",
         )
 
     # -----------------------------------------------------
-    # Fetch all payment attempts directly from Razorpay
+    # Fetch all payment attempts for this order
     # -----------------------------------------------------
 
     try:
@@ -818,22 +850,17 @@ def reconcile_recovery_payment(
         )
 
     # -----------------------------------------------------
-    # Find captured payments that match every trusted field
+    # Find valid matching captured payment
     # -----------------------------------------------------
 
     matching_payments: list[dict] = []
 
     for payment in payments:
-
         if not isinstance(
             payment,
             dict,
         ):
             continue
-
-        # -----------------------------------------------
-        # Payment must be captured
-        # -----------------------------------------------
 
         payment_status = str(
             payment.get(
@@ -845,19 +872,16 @@ def reconcile_recovery_payment(
         if payment_status != "captured":
             continue
 
-        # -----------------------------------------------
-        # Payment must belong to our persisted order
-        # -----------------------------------------------
-
         if (
-            payment.get("order_id")
+            str(
+                payment.get(
+                    "order_id",
+                    "",
+                )
+            )
             != order_id
         ):
             continue
-
-        # -----------------------------------------------
-        # Amount must match trusted transaction
-        # -----------------------------------------------
 
         try:
             gateway_amount_paise = int(
@@ -879,10 +903,6 @@ def reconcile_recovery_payment(
         ):
             continue
 
-        # -----------------------------------------------
-        # Currency must match trusted transaction
-        # -----------------------------------------------
-
         gateway_currency = str(
             payment.get(
                 "currency",
@@ -896,10 +916,6 @@ def reconcile_recovery_payment(
         ):
             continue
 
-        # -----------------------------------------------
-        # Payment must have an ID
-        # -----------------------------------------------
-
         payment_id = payment.get(
             "id"
         )
@@ -912,7 +928,7 @@ def reconcile_recovery_payment(
         )
 
     # -----------------------------------------------------
-    # No safely matching payment found
+    # No safe match
     # -----------------------------------------------------
 
     if not matching_payments:
@@ -926,10 +942,12 @@ def reconcile_recovery_payment(
         )
 
     # -----------------------------------------------------
-    # Fail closed on ambiguous multiple captures
+    # Multiple captures = ambiguous
     # -----------------------------------------------------
 
-    if len(matching_payments) > 1:
+    if len(
+        matching_payments
+    ) > 1:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=(
@@ -948,31 +966,813 @@ def reconcile_recovery_payment(
     )
 
     payment_status = str(
-        matching_payment["status"]
+        matching_payment[
+            "status"
+        ]
     ).lower()
 
     # -----------------------------------------------------
-    # Persist independently verified gateway state
+    # Persist gateway truth
     # -----------------------------------------------------
 
     save_verified_payment(
-        job_id=str(job["id"]),
-        razorpay_payment_id=payment_id,
-        payment_status=payment_status,
+        job_id=str(
+            job["id"]
+        ),
+        razorpay_payment_id=(
+            payment_id
+        ),
+        payment_status=(
+            payment_status
+        ),
     )
 
-    # -----------------------------------------------------
-    # Return reconciliation result
-    # -----------------------------------------------------
-
     return RazorpayReconcilePaymentResponse(
-        recovery_job_id=str(job["id"]),
-        transaction_id=transaction_id,
-        razorpay_order_id=order_id,
-        razorpay_payment_id=payment_id,
-        amount_paise=expected_amount_paise,
-        currency=expected_currency,
-        payment_status=payment_status,
+        recovery_job_id=str(
+            job["id"]
+        ),
+        transaction_id=(
+            transaction_id
+        ),
+        razorpay_order_id=(
+            order_id
+        ),
+        razorpay_payment_id=(
+            payment_id
+        ),
+        amount_paise=(
+            expected_amount_paise
+        ),
+        currency=(
+            expected_currency
+        ),
+        payment_status=(
+            payment_status
+        ),
         reconciled=True,
         execution_mode="RAZORPAY_TEST",
     )
+
+
+# =========================================================
+# RAZORPAY WEBHOOK
+# =========================================================
+
+@router.post(
+    "/webhook",
+)
+async def razorpay_webhook(
+    request: Request,
+):
+    """
+    Receive Razorpay webhook events.
+
+    Current supported processing event:
+        payment.captured
+
+    Security order:
+
+        raw HTTP body
+             ↓
+        signature verification
+             ↓
+        JSON parsing
+             ↓
+        x-razorpay-event-id reservation
+             ↓
+        duplicate protection
+             ↓
+        persisted order lookup
+             ↓
+        amount / currency / status checks
+             ↓
+        payment persistence
+             ↓
+        RecoverAI audit event
+    """
+
+    # -----------------------------------------------------
+    # Razorpay integration enabled
+    # -----------------------------------------------------
+
+    if not razorpay_enabled():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "Razorpay Test Mode integration "
+                "is currently disabled."
+            ),
+        )
+
+    # -----------------------------------------------------
+    # Required Razorpay headers
+    # -----------------------------------------------------
+
+    signature = request.headers.get(
+        "x-razorpay-signature"
+    )
+
+    event_id = request.headers.get(
+        "x-razorpay-event-id"
+    )
+
+    if not signature:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Missing X-Razorpay-Signature header."
+            ),
+        )
+
+    if not event_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Missing X-Razorpay-Event-Id header."
+            ),
+        )
+
+    # -----------------------------------------------------
+    # RAW BODY
+    # -----------------------------------------------------
+    #
+    # Do not JSON-parse first.
+    #
+    # The exact raw request body is required for
+    # webhook signature verification.
+    # -----------------------------------------------------
+
+    raw_body_bytes = await request.body()
+
+    if not raw_body_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Webhook body is empty.",
+        )
+
+    try:
+        raw_body = raw_body_bytes.decode(
+            "utf-8"
+        )
+
+    except UnicodeDecodeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Webhook body is not valid UTF-8."
+            ),
+        ) from exc
+
+    # -----------------------------------------------------
+    # WEBHOOK SIGNATURE VERIFICATION
+    # -----------------------------------------------------
+
+    try:
+        verify_webhook_signature(
+            raw_body=raw_body,
+            signature=signature,
+        )
+
+    except RazorpayConfigurationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+
+    except RazorpayVerificationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Invalid Razorpay webhook signature."
+            ),
+        ) from exc
+
+    # -----------------------------------------------------
+    # JSON parsing only after signature verification
+    # -----------------------------------------------------
+
+    try:
+        payload = json.loads(
+            raw_body
+        )
+
+    except json.JSONDecodeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Webhook payload is not valid JSON."
+            ),
+        ) from exc
+
+    if not isinstance(
+        payload,
+        dict,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Webhook payload must be "
+                "a JSON object."
+            ),
+        )
+
+    # -----------------------------------------------------
+    # Event type
+    # -----------------------------------------------------
+
+    event_type = str(
+        payload.get(
+            "event",
+            "",
+        )
+    )
+
+    if not event_type:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Webhook event type is missing."
+            ),
+        )
+
+    # -----------------------------------------------------
+    # Extract payment payload
+    # -----------------------------------------------------
+
+    payload_data = payload.get(
+        "payload",
+        {},
+    )
+
+    if not isinstance(
+        payload_data,
+        dict,
+    ):
+        payload_data = {}
+
+    payment_wrapper = payload_data.get(
+        "payment",
+        {},
+    )
+
+    if not isinstance(
+        payment_wrapper,
+        dict,
+    ):
+        payment_wrapper = {}
+
+    payment_entity = payment_wrapper.get(
+        "entity",
+        {},
+    )
+
+    if not isinstance(
+        payment_entity,
+        dict,
+    ):
+        payment_entity = {}
+
+    razorpay_payment_id = (
+        payment_entity.get(
+            "id"
+        )
+    )
+
+    razorpay_order_id = (
+        payment_entity.get(
+            "order_id"
+        )
+    )
+
+    # -----------------------------------------------------
+    # Find RecoverAI job from persisted order
+    # -----------------------------------------------------
+
+    recovery_job = None
+
+    if razorpay_order_id:
+        recovery_job = (
+            get_recovery_job_by_razorpay_order_id(
+                str(
+                    razorpay_order_id
+                )
+            )
+        )
+
+    recovery_job_id = (
+        str(
+            recovery_job["id"]
+        )
+        if recovery_job
+        else None
+    )
+
+    # -----------------------------------------------------
+    # RESERVE EVENT
+    # -----------------------------------------------------
+    #
+    # Database UNIQUE(event_id) is the final
+    # duplicate-delivery protection.
+    # -----------------------------------------------------
+
+    webhook_event, created = (
+        reserve_webhook_event(
+            event_id=event_id,
+            event_type=event_type,
+            payload=payload,
+            razorpay_order_id=(
+                str(
+                    razorpay_order_id
+                )
+                if razorpay_order_id
+                else None
+            ),
+            razorpay_payment_id=(
+                str(
+                    razorpay_payment_id
+                )
+                if razorpay_payment_id
+                else None
+            ),
+            recovery_job_id=(
+                recovery_job_id
+            ),
+        )
+    )
+
+    # -----------------------------------------------------
+    # Duplicate event
+    # -----------------------------------------------------
+
+    if not created:
+        return {
+            "received": True,
+            "duplicate": True,
+            "event_id": event_id,
+            "event_type": event_type,
+            "processing_status": (
+                webhook_event.get(
+                    "processing_status"
+                )
+            ),
+        }
+
+    # -----------------------------------------------------
+    # Unsupported event
+    # -----------------------------------------------------
+
+    if (
+        event_type
+        != "payment.captured"
+    ):
+        ignore_webhook_event(
+            event_id=event_id,
+            reason=(
+                "Webhook event type is not "
+                "currently processed by RecoverAI."
+            ),
+            recovery_job_id=(
+                recovery_job_id
+            ),
+            razorpay_order_id=(
+                str(
+                    razorpay_order_id
+                )
+                if razorpay_order_id
+                else None
+            ),
+            razorpay_payment_id=(
+                str(
+                    razorpay_payment_id
+                )
+                if razorpay_payment_id
+                else None
+            ),
+        )
+
+        return {
+            "received": True,
+            "duplicate": False,
+            "event_id": event_id,
+            "event_type": event_type,
+            "processing_status": "IGNORED",
+        }
+
+    # -----------------------------------------------------
+    # payment.captured requires identifiers
+    # -----------------------------------------------------
+
+    if (
+        not razorpay_payment_id
+        or not razorpay_order_id
+    ):
+        fail_webhook_event(
+            event_id=event_id,
+            error_message=(
+                "payment.captured payload is missing "
+                "payment ID or order ID."
+            ),
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Invalid payment.captured payload."
+            ),
+        )
+
+    razorpay_payment_id = str(
+        razorpay_payment_id
+    )
+
+    razorpay_order_id = str(
+        razorpay_order_id
+    )
+
+    # -----------------------------------------------------
+    # Unknown RecoverAI order
+    # -----------------------------------------------------
+
+    if recovery_job is None:
+        ignore_webhook_event(
+            event_id=event_id,
+            reason=(
+                "Razorpay order is not associated "
+                "with a RecoverAI recovery job."
+            ),
+            razorpay_order_id=(
+                razorpay_order_id
+            ),
+            razorpay_payment_id=(
+                razorpay_payment_id
+            ),
+        )
+
+        return {
+            "received": True,
+            "duplicate": False,
+            "event_id": event_id,
+            "event_type": event_type,
+            "processing_status": "IGNORED",
+        }
+
+    # -----------------------------------------------------
+    # Guardrail validation
+    # -----------------------------------------------------
+
+    if (
+        recovery_job.get(
+            "guardrail_status"
+        )
+        != "ALLOWED"
+    ):
+        fail_webhook_event(
+            event_id=event_id,
+            error_message=(
+                "Webhook payment belongs to a recovery "
+                "job that was not guardrail-approved."
+            ),
+            recovery_job_id=(
+                recovery_job_id
+            ),
+            razorpay_order_id=(
+                razorpay_order_id
+            ),
+            razorpay_payment_id=(
+                razorpay_payment_id
+            ),
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Recovery job was not "
+                "guardrail-approved."
+            ),
+        )
+
+    # -----------------------------------------------------
+    # Trusted transaction
+    # -----------------------------------------------------
+
+    transaction_id = str(
+        recovery_job[
+            "transaction_id"
+        ]
+    )
+
+    transaction = get_transaction(
+        transaction_id
+    )
+
+    if transaction is None:
+        fail_webhook_event(
+            event_id=event_id,
+            error_message=(
+                "Persisted RecoverAI transaction "
+                "could not be found."
+            ),
+            recovery_job_id=(
+                recovery_job_id
+            ),
+            razorpay_order_id=(
+                razorpay_order_id
+            ),
+            razorpay_payment_id=(
+                razorpay_payment_id
+            ),
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Persisted transaction "
+                "could not be found."
+            ),
+        )
+
+    # -----------------------------------------------------
+    # Trusted financial values
+    # -----------------------------------------------------
+
+    expected_amount_paise = int(
+        transaction[
+            "amount_paise"
+        ]
+    )
+
+    expected_currency = str(
+        transaction.get(
+            "currency",
+            "INR",
+        )
+    )
+
+    # -----------------------------------------------------
+    # Gateway amount
+    # -----------------------------------------------------
+
+    try:
+        gateway_amount_paise = int(
+            payment_entity.get(
+                "amount",
+                0,
+            )
+        )
+
+    except (
+        TypeError,
+        ValueError,
+    ):
+        gateway_amount_paise = 0
+
+    gateway_currency = str(
+        payment_entity.get(
+            "currency",
+            "",
+        )
+    )
+
+    gateway_status = str(
+        payment_entity.get(
+            "status",
+            "",
+        )
+    ).lower()
+
+    # -----------------------------------------------------
+    # Persisted order ID must match webhook
+    # -----------------------------------------------------
+
+    persisted_order_id = str(
+        recovery_job.get(
+            "razorpay_order_id"
+        )
+        or ""
+    )
+
+    if (
+        razorpay_order_id
+        != persisted_order_id
+    ):
+        fail_webhook_event(
+            event_id=event_id,
+            error_message=(
+                "Webhook Razorpay order ID does "
+                "not match persisted recovery order."
+            ),
+            recovery_job_id=(
+                recovery_job_id
+            ),
+            razorpay_order_id=(
+                razorpay_order_id
+            ),
+            razorpay_payment_id=(
+                razorpay_payment_id
+            ),
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Webhook order ID mismatch."
+            ),
+        )
+
+    # -----------------------------------------------------
+    # Amount must match
+    # -----------------------------------------------------
+
+    if (
+        gateway_amount_paise
+        != expected_amount_paise
+    ):
+        fail_webhook_event(
+            event_id=event_id,
+            error_message=(
+                "Webhook payment amount does not "
+                "match RecoverAI transaction."
+            ),
+            recovery_job_id=(
+                recovery_job_id
+            ),
+            razorpay_order_id=(
+                razorpay_order_id
+            ),
+            razorpay_payment_id=(
+                razorpay_payment_id
+            ),
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Webhook payment amount mismatch."
+            ),
+        )
+
+    # -----------------------------------------------------
+    # Currency must match
+    # -----------------------------------------------------
+
+    if (
+        gateway_currency
+        != expected_currency
+    ):
+        fail_webhook_event(
+            event_id=event_id,
+            error_message=(
+                "Webhook payment currency does "
+                "not match RecoverAI transaction."
+            ),
+            recovery_job_id=(
+                recovery_job_id
+            ),
+            razorpay_order_id=(
+                razorpay_order_id
+            ),
+            razorpay_payment_id=(
+                razorpay_payment_id
+            ),
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Webhook payment currency mismatch."
+            ),
+        )
+
+    # -----------------------------------------------------
+    # payment.captured must actually contain CAPTURED
+    # -----------------------------------------------------
+
+    if (
+        gateway_status
+        != "captured"
+    ):
+        fail_webhook_event(
+            event_id=event_id,
+            error_message=(
+                "payment.captured webhook payload "
+                "does not contain captured status."
+            ),
+            recovery_job_id=(
+                recovery_job_id
+            ),
+            razorpay_order_id=(
+                razorpay_order_id
+            ),
+            razorpay_payment_id=(
+                razorpay_payment_id
+            ),
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Webhook payment is not captured."
+            ),
+        )
+
+    # -----------------------------------------------------
+    # Payment-level conflict protection
+    # -----------------------------------------------------
+
+    existing_payment_id = (
+        recovery_job.get(
+            "razorpay_payment_id"
+        )
+    )
+
+    if (
+        existing_payment_id
+        and str(
+            existing_payment_id
+        )
+        != razorpay_payment_id
+    ):
+        fail_webhook_event(
+            event_id=event_id,
+            error_message=(
+                "A different Razorpay payment "
+                "is already associated with this "
+                "recovery job."
+            ),
+            recovery_job_id=(
+                recovery_job_id
+            ),
+            razorpay_order_id=(
+                razorpay_order_id
+            ),
+            razorpay_payment_id=(
+                razorpay_payment_id
+            ),
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Different payment already "
+                "verified for recovery job."
+            ),
+        )
+
+    # -----------------------------------------------------
+    # Persist captured payment
+    # -----------------------------------------------------
+
+    save_verified_payment(
+        job_id=(
+            recovery_job_id
+        ),
+        razorpay_payment_id=(
+            razorpay_payment_id
+        ),
+        payment_status="captured",
+    )
+
+    # -----------------------------------------------------
+    # RecoverAI audit event
+    # -----------------------------------------------------
+
+    append_audit_event(
+        transaction_id=(
+            transaction_id
+        ),
+        recovery_job_id=(
+            recovery_job_id
+        ),
+        step="GATEWAY_WEBHOOK",
+        status="SUCCESS",
+        message=(
+            "Razorpay payment.captured webhook "
+            "verified and persisted."
+        ),
+    )
+
+    # -----------------------------------------------------
+    # Mark webhook processed
+    # -----------------------------------------------------
+
+    complete_webhook_event(
+        event_id=event_id,
+        recovery_job_id=(
+            recovery_job_id
+        ),
+        razorpay_order_id=(
+            razorpay_order_id
+        ),
+        razorpay_payment_id=(
+            razorpay_payment_id
+        ),
+    )
+
+    return {
+        "received": True,
+        "duplicate": False,
+        "event_id": event_id,
+        "event_type": event_type,
+        "processing_status": "PROCESSED",
+        "payment_status": "captured",
+    }
