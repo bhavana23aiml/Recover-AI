@@ -2,7 +2,7 @@ import {
   useEffect,
   useState,
 } from "react";
-
+import RazorpayCheckout from "../payments/RazorpayCheckout";
 import {
   motion,
 } from "motion/react";
@@ -320,6 +320,8 @@ export default function Dashboard() {
   const activities:
     AgentActivity[] =
       dashboard.agent_activity;
+  const razorpayTestRecoveryJobId =
+  import.meta.env.VITE_RAZORPAY_TEST_RECOVERY_JOB_ID;
 
 
   return (
@@ -433,6 +435,99 @@ export default function Dashboard() {
 
             DEMO DATA · SIMULATION ENVIRONMENT
           </div>
+          {/* ================================================= */}
+{/* RAZORPAY TEST MODE                                */}
+{/* ================================================= */}
+
+{razorpayTestRecoveryJobId && (
+  <motion.section
+    initial={{
+      opacity: 0,
+      y: 10,
+    }}
+    animate={{
+      opacity: 1,
+      y: 0,
+    }}
+    transition={{
+      duration: 0.4,
+    }}
+    style={{
+      marginTop: 16,
+      marginBottom: 16,
+      padding: 18,
+      borderRadius: 14,
+      border:
+        "1px solid rgba(229,220,199,0.10)",
+      background:
+        "rgba(255,255,255,0.025)",
+    }}
+  >
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 20,
+        flexWrap: "wrap",
+      }}
+    >
+      <div>
+        <div
+          style={{
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: "0.12em",
+            color: "#93866A",
+            marginBottom: 7,
+          }}
+        >
+          RAZORPAY TEST MODE
+        </div>
+
+        <strong
+          style={{
+            display: "block",
+            color: "#F3EFE6",
+            fontSize: 15,
+            marginBottom: 5,
+          }}
+        >
+          Gateway Verification Test
+        </strong>
+
+        <span
+          style={{
+            color: "#747B83",
+            fontSize: 11,
+          }}
+        >
+          RZPTEST002 · ₹1.00 · No real money
+        </span>
+      </div>
+
+      <div
+        style={{
+          minWidth: 210,
+        }}
+      >
+        <RazorpayCheckout
+          recoveryJobId={
+            razorpayTestRecoveryJobId
+          }
+          transactionId="RZPTEST002"
+          
+          onVerified={(result) => {
+            console.log(
+              "RecoverAI gateway verification:",
+              result,
+            );
+          }}
+        />
+      </div>
+    </div>
+  </motion.section>
+)}
 
 
           {/* ================================================= */}

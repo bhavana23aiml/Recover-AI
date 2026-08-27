@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
+from routers.razorpay import router as razorpay_router
+
 from schemas.transaction import (
     AuditEvent,
     ClassificationRequest,
@@ -48,6 +50,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# =========================================================
+# ROUTERS
+# =========================================================
+
+app.include_router(razorpay_router)
 
 
 # =========================================================
@@ -147,12 +156,9 @@ def get_dashboard():
             # Expected flow:
             #
             # DETECT
-            #   ↓
             # CLASSIFY
-            #   ↓
             # DECIDE
-            #   ↓
-            # GUARDRAIL — BLOCKED
+            # GUARDRAIL - BLOCKED
             #
             # No EXECUTE
             # No VERIFY

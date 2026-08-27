@@ -322,3 +322,132 @@ def get_audit_events(
     )
 
     return list(response.data or [])
+# ---------------------------------------------------------------------------
+# Razorpay gateway persistence
+# ---------------------------------------------------------------------------
+
+
+def get_recovery_job_by_razorpay_order_id(
+    razorpay_order_id: str,
+) -> dict[str, Any] | None:
+    """
+    Find the RecoverAI recovery job associated with
+    a Razorpay order.
+
+    This will later be used by payment verification
+    and webhook processing.
+    """
+    client = get_supabase()
+
+    response = (
+        client.table("recovery_jobs")
+        .select("*")
+        .eq(
+            "razorpay_order_id",
+            razorpay_order_id,
+        )
+        .limit(1)
+        .execute()
+    )
+
+    if not response.data:
+        return None
+
+    return response.data[0]
+
+
+def save_razorpay_order(
+    *,
+    job_id: str,
+    razorpay_order_id: str,
+    order_status: str,
+) -> dict[str, Any]:
+    """
+    Attach a Razorpay Test Mode order to an existing
+    RecoverAI recovery job.
+    """
+    if not razorpay_order_id:
+        raise ValueError(
+            "razorpay_order_id is required."
+        )
+
+    client = get_supabase()
+
+    payload = {
+        "razorpay_order_id": razorpay_order_id,
+        "razorpay_order_status": order_status,
+        "updated_at": _utc_now_iso(),
+    }
+
+    response = (
+        client.table("recovery_jobs")
+        .update(payload)
+        .eq("id", job_id)
+        .execute()
+    )
+
+    if not response.data:
+        raise RuntimeError(
+            f"Failed to persist Razorpay order for job {job_id}."
+        )
+
+    return response.data[0]
+
+
+def save_verified_payment(
+    *,
+    job_id: str,
+    razorpay_payment_id: str,
+    payment_status: str,
+) -> dict[str, Any]:
+    """
+    Persist a Razorpay payment only after backend-side
+    gateway verification has succeeded.
+    """
+    if not razorpay_payment_id:
+        raise ValueError(
+            "razorpay_payment_id is required."
+        )
+
+    client = get_supabase()
+
+    payload = {
+        "razorpay_payment_id": razorpay_payment_id,
+        "razorpay_payment_status": payment_status,
+        "gateway_verified_at": _utc_now_iso(),
+        "updated_at": _utc_now_iso(),
+    }
+
+    response = (
+        client.table("recovery_jobs")
+        .update(payload)
+        .eq("id", job_id)
+        .execute()
+    )
+
+    if not response.data:
+        raise RuntimeError(
+            f"Failed to persist verified Razorpay payment for job {job_id}."
+        )
+
+    return response.data[0]
+def get_recovery_job(
+    job_id: str,
+) -> dict[str, Any] | None:
+    """
+    Fetch one recovery job by its database UUID.
+    """
+    client = get_supabase()
+
+    response = (
+        client.table("recovery_jobs")
+        .select("*")
+        .eq("id", job_id)
+        .limit(1)
+        .execute()
+    )
+
+    if not response.data:
+        return None
+
+    return response.data[0]
