@@ -950,7 +950,7 @@ P1
 Target endpoint:
 
 ```text
-POST /api/webhooks/razorpay
+POST /api/razorpay/webhook
 ```
 
 Target events include:

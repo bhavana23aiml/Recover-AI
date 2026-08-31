@@ -1134,7 +1134,7 @@ Sensitive credentials must remain backend-only. **FR-56 (P0)**.
 ```text
 Razorpay
    ↓
-POST /api/webhooks/razorpay
+POST /api/razorpay/webhook
    ↓
 Verify signature
    ↓
@@ -1316,7 +1316,7 @@ Target APIs:
 
 ```text
 GET  /api/dashboard/stream
-POST /api/webhooks/razorpay
+POST /api/razorpay/webhook
 ```
 
 ---

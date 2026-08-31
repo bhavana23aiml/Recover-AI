@@ -1198,7 +1198,7 @@ Target:
 ```text
 Razorpay
    ↓
-POST /api/webhooks/razorpay
+POST /api/razorpay/webhook
    ↓
 Verify Signature
    ↓
@@ -1235,7 +1235,7 @@ verification-related processing
 
 payment.captured
       ↓
-verify successful final payment state
+verify and persist final captured payment state; mark associated order paid
 
 refund.processed
       ↓
@@ -1533,7 +1533,7 @@ Planned:
 ```text
 GET  /api/dashboard/stream
 
-POST /api/webhooks/razorpay
+POST /api/razorpay/webhook
 ```
 
 ---
@@ -2311,7 +2311,7 @@ Duplicate event no duplicate execution
 
 payment.failed maps to recovery
 
-payment.captured verifies payment state
+payment.captured verifies and persists captured payment state; associated order is recorded as paid
 ```
 
 ---

@@ -608,6 +608,10 @@ def save_verified_payment(
     Persist a Razorpay payment only after
     backend-side gateway verification
     has succeeded.
+
+    When the verified payment is captured,
+    the associated Razorpay order is also
+    considered paid.
     """
 
     if not razorpay_payment_id:
@@ -617,19 +621,35 @@ def save_verified_payment(
 
     client = get_supabase()
 
+    normalized_payment_status = (
+        str(payment_status)
+        .strip()
+        .lower()
+    )
+
+    now = _utc_now_iso()
+
     payload = {
         "razorpay_payment_id":
             razorpay_payment_id,
 
         "razorpay_payment_status":
-            payment_status,
+            normalized_payment_status,
 
         "gateway_verified_at":
-            _utc_now_iso(),
+            now,
 
         "updated_at":
-            _utc_now_iso(),
+            now,
     }
+
+    # Razorpay order lifecycle:
+    # created -> attempted -> paid
+    #
+    # A captured payment means the associated
+    # order has successfully been paid.
+    if normalized_payment_status == "captured":
+        payload["razorpay_order_status"] = "paid"
 
     response = (
         client
