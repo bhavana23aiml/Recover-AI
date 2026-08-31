@@ -569,3 +569,522 @@ button {
     display: none;
   }
 }
+/* =========================================================
+   RECOVERAI — RESPONSIVE APPLICATION SHELL
+   ========================================================= */
+
+.sidebar {
+  z-index: 50;
+  box-sizing: border-box;
+}
+
+.main-content {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.topbar {
+  gap: 24px;
+}
+
+.header-actions {
+  min-width: 0;
+}
+
+.search-box {
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.search-box:focus-within {
+  border-color: rgba(229, 220, 199, 0.18);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.icon-button {
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.icon-button:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #e5dcc7;
+  border-color: rgba(229, 220, 199, 0.14);
+}
+
+
+/* =========================================================
+   MEDIUM DESKTOP / LAPTOP
+   ========================================================= */
+
+@media (max-width: 1180px) {
+  .sidebar {
+    width: 220px;
+    padding: 24px 14px;
+  }
+
+  .main-content {
+    margin-left: 220px;
+    width: calc(100% - 220px);
+    padding: 0 24px 36px;
+  }
+
+  .search-box {
+    min-width: 190px;
+  }
+
+  .topbar {
+    min-height: 92px;
+  }
+}
+
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 900px) {
+  .sidebar {
+    width: 190px;
+    padding: 22px 12px;
+  }
+
+  .main-content {
+    margin-left: 190px;
+    width: calc(100% - 190px);
+    padding: 0 18px 32px;
+  }
+
+  .brand {
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  .brand h2 {
+    font-size: 15px;
+  }
+
+  .brand span {
+    font-size: 9px;
+  }
+
+  .nav-item {
+    padding: 10px;
+    gap: 9px;
+    font-size: 12px;
+  }
+
+  .search-box {
+    display: none;
+  }
+
+  .topbar {
+    min-height: 84px;
+  }
+
+  .topbar h1 {
+    font-size: 21px;
+  }
+}
+
+
+/* =========================================================
+   MOBILE / NARROW VIEW
+   ========================================================= */
+
+@media (max-width: 720px) {
+  .app-shell {
+    display: block;
+  }
+
+  .sidebar {
+    position: sticky;
+    top: 0;
+
+    width: 100%;
+    min-height: auto;
+
+    padding: 12px 14px;
+
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+
+    background: rgba(8, 11, 15, 0.96);
+  }
+
+  .brand {
+    padding: 0 4px 12px;
+  }
+
+  .brand-mark {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+  }
+
+  .brand h2 {
+    font-size: 14px;
+  }
+
+  .brand span {
+    font-size: 9px;
+  }
+
+  .nav-list {
+    flex-direction: row;
+    gap: 6px;
+
+    overflow-x: auto;
+    padding-bottom: 2px;
+
+    scrollbar-width: none;
+  }
+
+  .nav-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-item {
+    width: auto;
+    flex: 0 0 auto;
+
+    padding: 9px 11px;
+
+    white-space: nowrap;
+  }
+
+  .nav-item span {
+    font-size: 10px;
+  }
+
+  .sidebar-footer {
+    display: none;
+  }
+
+  .main-content {
+    margin-left: 0;
+    width: 100%;
+
+    padding: 0 14px 28px;
+
+    overflow-x: hidden;
+  }
+
+  .topbar {
+    min-height: 78px;
+    gap: 12px;
+  }
+
+  .topbar h1 {
+    font-size: 19px;
+  }
+
+  .eyebrow {
+    font-size: 8px;
+  }
+
+  .header-actions {
+    gap: 7px;
+  }
+
+  .search-box {
+    display: none;
+  }
+
+  .icon-button {
+    width: 36px;
+    height: 36px;
+  }
+
+  .agent-status {
+    height: 36px;
+    padding: 0 10px;
+  }
+}
+
+
+/* =========================================================
+   VERY SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 480px) {
+  .main-content {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .topbar {
+    min-height: 72px;
+  }
+
+  .topbar h1 {
+    font-size: 17px;
+  }
+
+  .header-actions .icon-button {
+    display: none;
+  }
+
+  .nav-item {
+    padding: 8px 9px;
+  }
+}
+/* =========================================================
+   TRANSACTIONS RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 1100px) {
+  .transactions-table-header,
+  .transactions-table-row {
+    grid-template-columns:
+      1fr 0.8fr 1.25fr 0.55fr 1fr 0.8fr !important;
+  }
+
+  .transactions-table-header > :nth-child(5),
+  .transactions-table-row > :nth-child(5) {
+    display: none;
+  }
+}
+
+
+@media (max-width: 820px) {
+  .transactions-table-header {
+    display: none !important;
+  }
+
+  .transactions-table-row {
+    grid-template-columns:
+      1fr auto !important;
+
+    gap: 12px !important;
+
+    padding: 16px !important;
+
+    min-height: unset !important;
+  }
+
+  .transactions-table-row > * {
+    display: block !important;
+  }
+
+  /* Failure */
+  .transactions-table-row > :nth-child(3) {
+    grid-column: 1 / -1;
+  }
+
+  /* Retry */
+  .transactions-table-row > :nth-child(4)::before {
+    content: "Retry ";
+    color: #747b83;
+  }
+
+  /* Agent action */
+  .transactions-table-row > :nth-child(5) {
+    grid-column: 1 / -1;
+  }
+
+  /* Status */
+  .transactions-table-row > :nth-child(6) {
+    grid-column: 1;
+  }
+
+  /* Run Recovery */
+  .transactions-table-row > :nth-child(7) {
+    grid-column: 2;
+    grid-row: 4;
+  }
+}
+
+
+@media (max-width: 520px) {
+  .transactions-table-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .transactions-table-row > :nth-child(3),
+  .transactions-table-row > :nth-child(5),
+  .transactions-table-row > :nth-child(6),
+  .transactions-table-row > :nth-child(7) {
+    grid-column: 1;
+  }
+
+  .transactions-table-row > :nth-child(7) {
+    grid-row: auto;
+    width: 100%;
+  }
+}
+/* =========================================================
+   RECOVERY AGENT RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 1050px) {
+  .recovery-agent-layout {
+    grid-template-columns:
+      270px minmax(0, 1fr) !important;
+  }
+}
+
+
+@media (max-width: 820px) {
+  .recovery-agent-status-grid {
+    grid-template-columns:
+      1fr !important;
+  }
+
+  .recovery-agent-layout {
+    grid-template-columns:
+      1fr !important;
+  }
+}
+
+
+@media (max-width: 520px) {
+  .recovery-agent-layout {
+    gap: 12px !important;
+  }
+}
+/* =========================================================
+   ACTIVITY RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 1100px) {
+  .activity-layout {
+    grid-template-columns:
+      260px minmax(0, 1fr) !important;
+  }
+
+  .activity-audit-row {
+    grid-template-columns:
+      38px 90px 90px minmax(0, 1fr) !important;
+  }
+
+  .activity-audit-row > :nth-child(5) {
+    grid-column: 2 / -1;
+    text-align: left !important;
+  }
+}
+
+
+@media (max-width: 820px) {
+  .activity-layout {
+    grid-template-columns:
+      1fr !important;
+  }
+
+  .activity-audit-row {
+    grid-template-columns:
+      36px 1fr auto !important;
+
+    align-items:
+      start !important;
+  }
+
+  .activity-audit-row > :nth-child(4) {
+    grid-column:
+      2 / -1;
+  }
+
+  .activity-audit-row > :nth-child(5) {
+    grid-column:
+      2 / -1;
+
+    text-align:
+      left !important;
+  }
+}
+
+
+@media (max-width: 520px) {
+  .activity-audit-row {
+    grid-template-columns:
+      34px 1fr !important;
+
+    gap: 8px !important;
+
+    padding:
+      14px !important;
+  }
+
+  .activity-audit-row > :nth-child(3),
+  .activity-audit-row > :nth-child(4),
+  .activity-audit-row > :nth-child(5) {
+    grid-column:
+      2;
+  }
+
+  .activity-audit-row > :nth-child(5) {
+    text-align:
+      left !important;
+  }
+}
+/* =========================================================
+   GUARDRAILS RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 1050px) {
+  .guardrails-policy-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+
+@media (max-width: 760px) {
+  .guardrails-policy-grid,
+  .guardrails-outcome-grid,
+  .guardrails-example-grid {
+    grid-template-columns:
+      1fr !important;
+  }
+
+  .guardrails-flow {
+    grid-template-columns:
+      1fr !important;
+
+    justify-content:
+      stretch !important;
+  }
+
+  .guardrails-flow > span {
+    transform:
+      rotate(90deg);
+
+    justify-self:
+      center;
+  }
+
+  .guardrails-flow > div {
+    width: auto;
+    min-width: 0 !important;
+  }
+}
+
+
+/* =========================================================
+   SETTINGS RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 1050px) {
+  .settings-status-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .settings-execution-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+
+@media (max-width: 720px) {
+  .settings-status-grid,
+  .settings-boundary-grid,
+  .settings-execution-grid {
+    grid-template-columns:
+      1fr !important;
+  }
+}

@@ -2625,5 +2625,17 @@ frontend/src/services/aiApi.ts
 frontend/src/types/ai.ts
 frontend/src/components/transactions/DecisionDrawer.tsx
 ---
+# Multi-Page Product Workspace — Current Status
 
+RecoverAI is no longer dashboard-only.
+
+React Router now provides working navigation for:
+
+```text
+Overview
+Transactions
+Recovery Agent
+Activity
+Guardrails
+Settings
 # END OF MEMORY DOCUMENT

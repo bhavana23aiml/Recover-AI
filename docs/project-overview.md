@@ -1694,7 +1694,19 @@ Frontend implementation:
 frontend/src/components/ai/AIReasoningPanel.tsx
 frontend/src/services/aiApi.ts
 frontend/src/types/ai.ts
+## RecoverAI Product Workspace
 
+The frontend now provides routed product workspaces rather than a dashboard-only interface.
+
+Implemented routes:
+
+```text
+/                 → Command Center
+/transactions     → Transactions
+/recovery-agent   → Recovery Agent
+/activity         → Activity
+/guardrails       → Guardrails
+/settings         → Settings
 ---
 
 # END OF PROJECT OVERVIEW

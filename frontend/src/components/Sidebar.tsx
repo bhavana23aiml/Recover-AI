@@ -7,45 +7,116 @@ import {
   Settings,
 } from "lucide-react";
 
+import {
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+
+
 const navItems = [
-  { label: "Overview", icon: LayoutDashboard },
-  { label: "Transactions", icon: CreditCard },
-  { label: "Recovery Agent", icon: Bot },
-  { label: "Activity", icon: Activity },
-  { label: "Guardrails", icon: ShieldCheck },
-  { label: "Settings", icon: Settings },
+  {
+    label: "Overview",
+    icon: LayoutDashboard,
+    path: "/",
+  },
+  {
+    label: "Transactions",
+    icon: CreditCard,
+    path: "/transactions",
+  },
+  {
+    label: "Recovery Agent",
+    icon: Bot,
+    path: "/recovery-agent",
+  },
+  {
+    label: "Activity",
+    icon: Activity,
+    path: "/activity",
+  },
+  {
+    label: "Guardrails",
+    icon: ShieldCheck,
+    path: "/guardrails",
+  },
+  {
+    label: "Settings",
+    icon: Settings,
+    path: "/settings",
+  },
 ];
 
+
 export default function Sidebar() {
+  const navigate =
+    useNavigate();
+
+  const location =
+    useLocation();
+
   return (
     <aside className="sidebar">
       <div className="brand">
-        <div className="brand-mark">R</div>
+        <div className="brand-mark">
+          R
+        </div>
+
         <div>
           <h2>RecoverAI</h2>
-          <span>Revenue Recovery</span>
+          <span>
+            Revenue Recovery
+          </span>
         </div>
       </div>
 
-      <nav className="nav-list">
-        {navItems.map((item, index) => {
-          const Icon = item.icon;
 
-          return (
-            <button
-              key={item.label}
-              className={`nav-item ${index === 0 ? "active" : ""}`}
-            >
-              <Icon size={18} />
-              <span>{item.label}</span>
-            </button>
-          );
-        })}
+      <nav className="nav-list">
+        {navItems.map(
+          (item) => {
+            const Icon =
+              item.icon;
+
+            const active =
+              location.pathname ===
+              item.path;
+
+            return (
+              <button
+                key={
+                  item.label
+                }
+                type="button"
+                className={`nav-item ${
+                  active
+                    ? "active"
+                    : ""
+                }`}
+                onClick={() =>
+                  navigate(
+                    item.path,
+                  )
+                }
+              >
+                <Icon
+                  size={18}
+                />
+
+                <span>
+                  {item.label}
+                </span>
+              </button>
+            );
+          },
+        )}
       </nav>
+
 
       <div className="sidebar-footer">
         <div className="environment-dot" />
-        <span>Test Environment</span>
+
+        <span>
+          Test Environment
+        </span>
       </div>
     </aside>
   );
