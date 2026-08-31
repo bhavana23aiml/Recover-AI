@@ -2613,7 +2613,17 @@ If both are visually confirmed:
 4. Replace QUICK RESUME.
 5. Rotate Section 123 into session history.
 6. Begin the documented P1 next phase.
+# Frontend AI Decision Analysis — Current Status
 
+The GroqCloud-backed AI explanation layer is now connected to the existing RecoverAI Decision Drawer.
+
+Current frontend files:
+
+```text
+frontend/src/components/ai/AIReasoningPanel.tsx
+frontend/src/services/aiApi.ts
+frontend/src/types/ai.ts
+frontend/src/components/transactions/DecisionDrawer.tsx
 ---
 
 # END OF MEMORY DOCUMENT

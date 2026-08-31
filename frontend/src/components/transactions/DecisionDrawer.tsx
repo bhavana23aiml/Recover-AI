@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-
+import AIReasoningPanel from "../ai/AIReasoningPanel";
 import {
   X,
   ShieldCheck,
@@ -887,6 +887,17 @@ export default function DecisionDrawer({
                   )}
                 </div>
               </InfoPanel>
+              {/* =============================================== */}
+{/* AI REASONING                                    */}
+{/* =============================================== */}
+
+<SectionTitle>
+  AI EXPLANATION
+</SectionTitle>
+
+<AIReasoningPanel
+  data={data}
+/>
 
 
               {/* =============================================== */}

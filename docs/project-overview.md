@@ -1684,6 +1684,16 @@ The core philosophy is:
 > **Detect accurately → decide explainably → constrain deterministically → execute safely → verify independently → audit everything.**
 
 RecoverAI turns failed payments from a static operational problem into an intelligent, measurable, and controlled revenue recovery workflow.
+### Frontend AI Decision Analysis
+
+The AI reasoning layer is now integrated into the existing recovery Decision Drawer.
+
+Frontend implementation:
+
+```text
+frontend/src/components/ai/AIReasoningPanel.tsx
+frontend/src/services/aiApi.ts
+frontend/src/types/ai.ts
 
 ---
 

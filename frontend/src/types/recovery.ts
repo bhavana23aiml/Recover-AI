@@ -89,6 +89,8 @@ export interface RecoveryDecisionDrawerData {
 
   failureCode: FailureCode;
 
+  retryCount: number;
+
   category: string;
 
   action: string;
@@ -113,6 +115,7 @@ export interface RecoveryDecisionDrawerData {
 
 export function mapRecoveryResponseToDrawer(
   response: RecoveryExecutionResponse,
+  retryCount: number,
 ): RecoveryDecisionDrawerData {
   return {
     transactionId: response.transaction_id,
@@ -120,6 +123,8 @@ export function mapRecoveryResponseToDrawer(
     amount: response.amount,
 
     failureCode: response.failure_code,
+
+    retryCount,
 
     category: response.category,
 

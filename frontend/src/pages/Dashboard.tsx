@@ -191,10 +191,10 @@ export default function Dashboard() {
         });
 
       const drawerData =
-        mapRecoveryResponseToDrawer(
-          response,
-        );
-
+  mapRecoveryResponseToDrawer(
+    response,
+    transaction.retry_count,
+  );
       setDecisionData(
         drawerData,
       );
