@@ -5,7 +5,15 @@ from schemas.transaction import (
 )
 
 
+# =========================================================
+# DETERMINISTIC FAILURE CLASSIFICATION RULES
+# =========================================================
+
 FAILURE_RULES = {
+
+    # -----------------------------------------------------
+    # BANK UNAVAILABLE
+    # -----------------------------------------------------
 
     FailureCode.BANK_UNAVAILABLE: {
         "category": "TRANSIENT_BANK_FAILURE",
@@ -16,9 +24,14 @@ FAILURE_RULES = {
         "confidence": 0.94,
         "explanation": (
             "The customer's bank appears temporarily unavailable. "
-            "A delayed retry is safer than retrying immediately."
+            "RecoverAI recommends a delayed retry after the "
+            "configured retry delay."
         ),
     },
+
+    # -----------------------------------------------------
+    # NETWORK ERROR
+    # -----------------------------------------------------
 
     FailureCode.NETWORK_ERROR: {
         "category": "TRANSIENT_NETWORK_FAILURE",
@@ -33,6 +46,10 @@ FAILURE_RULES = {
         ),
     },
 
+    # -----------------------------------------------------
+    # PAYMENT TIMEOUT
+    # -----------------------------------------------------
+
     FailureCode.PAYMENT_TIMEOUT: {
         "category": "TRANSIENT_TIMEOUT",
         "retryable": True,
@@ -45,6 +62,10 @@ FAILURE_RULES = {
             "verified before attempting another charge."
         ),
     },
+
+    # -----------------------------------------------------
+    # INSUFFICIENT FUNDS
+    # -----------------------------------------------------
 
     FailureCode.INSUFFICIENT_FUNDS: {
         "category": "CUSTOMER_FUNDS",
@@ -59,6 +80,10 @@ FAILURE_RULES = {
         ),
     },
 
+    # -----------------------------------------------------
+    # MANDATE FAILURE
+    # -----------------------------------------------------
+
     FailureCode.MANDATE_FAILURE: {
         "category": "AUTHORIZATION_FAILURE",
         "retryable": False,
@@ -71,6 +96,10 @@ FAILURE_RULES = {
             "The customer should provide a valid payment method."
         ),
     },
+
+    # -----------------------------------------------------
+    # CUSTOMER ABANDONED
+    # -----------------------------------------------------
 
     FailureCode.CUSTOMER_ABANDONED: {
         "category": "CHECKOUT_ABANDONMENT",
@@ -86,6 +115,10 @@ FAILURE_RULES = {
         ),
     },
 
+    # -----------------------------------------------------
+    # ISSUER DECLINED
+    # -----------------------------------------------------
+
     FailureCode.ISSUER_DECLINED: {
         "category": "HARD_DECLINE",
         "retryable": False,
@@ -99,6 +132,10 @@ FAILURE_RULES = {
             "should be requested."
         ),
     },
+
+    # -----------------------------------------------------
+    # UNKNOWN ERROR
+    # -----------------------------------------------------
 
     FailureCode.UNKNOWN_ERROR: {
         "category": "UNKNOWN",
@@ -115,26 +152,70 @@ FAILURE_RULES = {
 }
 
 
+# =========================================================
+# CLASSIFIER
+# =========================================================
+
 def classify_failure(
     request: ClassificationRequest,
 ) -> ClassificationResult:
+    """
+    Deterministically classify a failed payment.
+
+    No LLM or external AI provider is involved here.
+
+    The classifier is the authoritative source for:
+
+    - failure category
+    - retryability
+    - severity
+    - proposed recovery action
+    - retry delay
+    - confidence
+    - deterministic explanation
+    """
 
     rule = FAILURE_RULES.get(
         request.failure_code,
-        FAILURE_RULES[FailureCode.UNKNOWN_ERROR],
+        FAILURE_RULES[
+            FailureCode.UNKNOWN_ERROR
+        ],
     )
 
     return ClassificationResult(
-        transaction_id=request.transaction_id,
-        failure_code=request.failure_code,
+        transaction_id=(
+            request.transaction_id
+        ),
 
-        category=rule["category"],
-        retryable=rule["retryable"],
-        severity=rule["severity"],
+        failure_code=(
+            request.failure_code
+        ),
 
-        recommended_action=rule["recommended_action"],
-        retry_delay_minutes=rule["retry_delay_minutes"],
+        category=(
+            rule["category"]
+        ),
 
-        confidence=rule["confidence"],
-        explanation=rule["explanation"],
+        retryable=(
+            rule["retryable"]
+        ),
+
+        severity=(
+            rule["severity"]
+        ),
+
+        recommended_action=(
+            rule["recommended_action"]
+        ),
+
+        retry_delay_minutes=(
+            rule["retry_delay_minutes"]
+        ),
+
+        confidence=(
+            rule["confidence"]
+        ),
+
+        explanation=(
+            rule["explanation"]
+        ),
     )

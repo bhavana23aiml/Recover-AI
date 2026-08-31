@@ -1,7 +1,19 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import (
+    FastAPI,
+    HTTPException,
+)
 
-from routers.razorpay import router as razorpay_router
+from fastapi.middleware.cors import (
+    CORSMiddleware,
+)
+
+from routers.razorpay import (
+    router as razorpay_router,
+)
+
+from routers.ai import (
+    router as ai_router,
+)
 
 from schemas.transaction import (
     AuditEvent,
@@ -13,9 +25,18 @@ from schemas.transaction import (
     RecoveryExecutionResponse,
 )
 
-from services.failure_classifier import classify_failure
-from services.recovery_engine import create_recovery_decision
-from services.guardrail_engine import evaluate_guardrails
+from services.failure_classifier import (
+    classify_failure,
+)
+
+from services.recovery_engine import (
+    create_recovery_decision,
+)
+
+from services.guardrail_engine import (
+    evaluate_guardrails,
+)
+
 from services.recovery_executor import (
     execute_recovery,
     get_audit_trail,
@@ -28,7 +49,9 @@ from services.recovery_executor import (
 
 app = FastAPI(
     title="RecoverAI API",
-    description="AI-powered revenue recovery platform",
+    description=(
+        "AI-powered revenue recovery platform"
+    ),
     version="1.0.0",
 )
 
@@ -36,27 +59,53 @@ app = FastAPI(
 # =========================================================
 # CORS
 # =========================================================
+#
 # Allow the local Vite frontend to communicate
 # with the FastAPI backend during development.
+#
 # =========================================================
 
 app.add_middleware(
     CORSMiddleware,
+
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
     ],
+
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+
+    allow_methods=[
+        "*"
+    ],
+
+    allow_headers=[
+        "*"
+    ],
 )
 
 
 # =========================================================
 # ROUTERS
 # =========================================================
+#
+# AI and Razorpay intentionally remain separate.
+#
+# /api/ai/*
+#     explanation only
+#
+# /api/razorpay/*
+#     Razorpay Test Mode gateway operations
+#
+# =========================================================
 
-app.include_router(razorpay_router)
+app.include_router(
+    ai_router
+)
+
+app.include_router(
+    razorpay_router
+)
 
 
 # =========================================================
@@ -66,8 +115,11 @@ app.include_router(razorpay_router)
 @app.get("/")
 def root():
     return {
-        "message": "RecoverAI backend is running",
-        "status": "healthy",
+        "message":
+            "RecoverAI backend is running",
+
+        "status":
+            "healthy",
     }
 
 
@@ -78,8 +130,11 @@ def root():
 @app.get("/health")
 def health():
     return {
-        "status": "ok",
-        "service": "RecoverAI API",
+        "status":
+            "ok",
+
+        "service":
+            "RecoverAI API",
     }
 
 
@@ -92,58 +147,100 @@ def health():
 # Machine-readable recovery fields are included so the
 # frontend does not need to infer business logic from
 # human-readable failure descriptions.
+#
 # =========================================================
 
 @app.get("/api/dashboard")
 def get_dashboard():
     return {
         "metrics": {
-            "revenue_at_risk": 248400,
-            "revenue_recovered": 171920,
-            "recovery_rate": 69.2,
-            "active_recoveries": 47,
-            "failed_payments": 84,
-            "recovered_today": 31900,
+            "revenue_at_risk":
+                248400,
+
+            "revenue_recovered":
+                171920,
+
+            "recovery_rate":
+                69.2,
+
+            "active_recoveries":
+                47,
+
+            "failed_payments":
+                84,
+
+            "recovered_today":
+                31900,
         },
 
         "transactions": [
             {
-                "id": "RX18492",
-                "amount": 7499,
+                "id":
+                    "RX18492",
 
-                "failure_reason": "Bank unavailable",
-                "failure_code": FailureCode.BANK_UNAVAILABLE.value,
+                "amount":
+                    7499,
 
-                "retry_count": 0,
+                "failure_reason":
+                    "Bank unavailable",
 
-                "agent_action": "Retry scheduled",
-                "status": "Recovering",
+                "failure_code":
+                    FailureCode.BANK_UNAVAILABLE.value,
+
+                "retry_count":
+                    0,
+
+                "agent_action":
+                    "Retry scheduled",
+
+                "status":
+                    "Recovering",
             },
 
             {
-                "id": "RX18493",
-                "amount": 4999,
+                "id":
+                    "RX18493",
 
-                "failure_reason": "Payment timeout",
-                "failure_code": FailureCode.PAYMENT_TIMEOUT.value,
+                "amount":
+                    4999,
 
-                "retry_count": 0,
+                "failure_reason":
+                    "Payment timeout",
 
-                "agent_action": "Retry completed",
-                "status": "Recovered",
+                "failure_code":
+                    FailureCode.PAYMENT_TIMEOUT.value,
+
+                "retry_count":
+                    0,
+
+                "agent_action":
+                    "Retry completed",
+
+                "status":
+                    "Recovered",
             },
 
             {
-                "id": "RX18494",
-                "amount": 12000,
+                "id":
+                    "RX18494",
 
-                "failure_reason": "Insufficient funds",
-                "failure_code": FailureCode.INSUFFICIENT_FUNDS.value,
+                "amount":
+                    12000,
 
-                "retry_count": 0,
+                "failure_reason":
+                    "Insufficient funds",
 
-                "agent_action": "Customer reminder",
-                "status": "Waiting",
+                "failure_code":
+                    FailureCode.INSUFFICIENT_FUNDS.value,
+
+                "retry_count":
+                    0,
+
+                "agent_action":
+                    "Customer reminder",
+
+                "status":
+                    "Waiting",
             },
 
             # -------------------------------------------------
@@ -162,26 +259,41 @@ def get_dashboard():
             #
             # No EXECUTE
             # No VERIFY
+            #
             # -------------------------------------------------
 
             {
-                "id": "RX20117",
-                "amount": 68000,
+                "id":
+                    "RX20117",
 
-                "failure_reason": "Bank unavailable",
-                "failure_code": FailureCode.BANK_UNAVAILABLE.value,
+                "amount":
+                    68000,
 
-                "retry_count": 2,
+                "failure_reason":
+                    "Bank unavailable",
 
-                "agent_action": "Recovery blocked",
-                "status": "Blocked",
+                "failure_code":
+                    FailureCode.BANK_UNAVAILABLE.value,
+
+                "retry_count":
+                    2,
+
+                "agent_action":
+                    "Recovery blocked",
+
+                "status":
+                    "Blocked",
             },
         ],
 
         "agent_activity": [
             {
-                "time": "10:41:02",
-                "title": "Failure detected",
+                "time":
+                    "10:41:02",
+
+                "title":
+                    "Failure detected",
+
                 "detail": (
                     "Issuer degradation affecting "
                     "18 payments"
@@ -189,8 +301,12 @@ def get_dashboard():
             },
 
             {
-                "time": "10:41:05",
-                "title": "Transactions clustered",
+                "time":
+                    "10:41:05",
+
+                "title":
+                    "Transactions clustered",
+
                 "detail": (
                     "₹38,420 identified as "
                     "recoverable revenue"
@@ -198,16 +314,24 @@ def get_dashboard():
             },
 
             {
-                "time": "10:41:08",
-                "title": "Recovery strategy selected",
+                "time":
+                    "10:41:08",
+
+                "title":
+                    "Recovery strategy selected",
+
                 "detail": (
                     "30-minute delayed retry approved"
                 ),
             },
 
             {
-                "time": "11:11:32",
-                "title": "Recovery successful",
+                "time":
+                    "11:11:32",
+
+                "title":
+                    "Recovery successful",
+
                 "detail": (
                     "₹31,900 successfully recovered"
                 ),
@@ -227,7 +351,9 @@ def get_dashboard():
 def classify_payment_failure(
     request: ClassificationRequest,
 ):
-    return classify_failure(request)
+    return classify_failure(
+        request
+    )
 
 
 # =========================================================
@@ -241,7 +367,9 @@ def classify_payment_failure(
 def decide_recovery(
     request: ClassificationRequest,
 ):
-    return create_recovery_decision(request)
+    return create_recovery_decision(
+        request
+    )
 
 
 # =========================================================
@@ -255,11 +383,22 @@ def decide_recovery(
 def check_recovery_guardrails(
     request: ClassificationRequest,
 ):
-    return evaluate_guardrails(request)
+    return evaluate_guardrails(
+        request
+    )
 
 
 # =========================================================
 # RECOVERY EXECUTION
+# =========================================================
+#
+# IMPORTANT:
+#
+# AI reasoning is NOT called from this endpoint.
+#
+# Financial execution continues to depend only on
+# deterministic RecoverAI services and guardrails.
+#
 # =========================================================
 
 @app.post(
@@ -269,7 +408,9 @@ def check_recovery_guardrails(
 def execute_payment_recovery(
     request: ClassificationRequest,
 ):
-    return execute_recovery(request)
+    return execute_recovery(
+        request
+    )
 
 
 # =========================================================
@@ -290,6 +431,7 @@ def recovery_audit(
     if not events:
         raise HTTPException(
             status_code=404,
+
             detail=(
                 "No audit trail found "
                 "for this transaction."
