@@ -1,5 +1,12 @@
 # RecoverAI — Project Overview
 
+**Project:** RecoverAI — Intelligent AI-Powered Revenue Recovery Agent
+**Track:** AI Revenue Recovery
+**Document:** Project Overview
+**Status:** ACTIVE
+**Last Updated:** 2026-09-04
+
+
 ## Project Title
 
 **RecoverAI — Intelligent AI-Powered Revenue Recovery Agent**
@@ -10,11 +17,45 @@
 
 ## Project Overview
 
-RecoverAI is an **AI-assisted payment recovery platform** designed to help businesses identify, analyze, and recover revenue lost because of failed digital payments.
+RecoverAI is an **AI-assisted payment recovery platform** designed to help businesses identify, analyze, and safely recover revenue lost because of failed digital payments.
 
-Instead of treating every failed payment in the same way, RecoverAI analyzes the reason behind the failure, determines the safest recovery strategy, validates that strategy against predefined financial safety guardrails, executes or simulates the recovery action, verifies the result, and maintains a complete audit trail of every decision made.
+Instead of treating every failed payment in the same way, RecoverAI:
 
-The system is designed as a **controlled financial recovery agent**, where AI helps explain and understand payment failures, while deterministic rules remain responsible for safety-critical decisions.
+```text
+detects the failure
+      ↓
+classifies the cause
+      ↓
+selects a recovery strategy
+      ↓
+applies deterministic guardrails
+      ↓
+executes only when permitted
+      ↓
+verifies the payment outcome
+      ↓
+records the audit trail
+```
+
+The system is designed as a **controlled financial recovery agent**.
+
+AI helps explain deterministic decisions and transaction context, while deterministic backend logic remains responsible for:
+
+```text
+classification authority
+recovery strategy
+confidence values
+guardrails
+execution permission
+verification
+payment success state
+```
+
+The current Buildathon implementation includes Supabase authentication, persistent Supabase/PostgreSQL recovery state, an explanation-only AI layer, and Razorpay **Test Mode** integration.
+
+Razorpay Test Mode must not be presented as production payment processing.
+
+Authentication is implemented, but merchant-level tenancy/data isolation is not.
 
 ---
 
@@ -53,45 +94,20 @@ RecoverAI solves this by deciding **when to retry, when to wait, when to contact
 
 ## Why This, Not Existing Tools
 
-Payment gateways already offer retry logic, and most merchants otherwise handle this manually in operations queues.
-
-RecoverAI is not a replacement gateway feature.
-
-It is a **decision, safety, explainability, and visibility layer** that sits above whatever executes the payment recovery action.
-
-The distinction that matters:
+Payment gateways already offer retry logic (e.g. Razorpay Smart Collect, Stripe Billing's recovery flows), and most merchants otherwise handle this manually in ops queues. RecoverAI is not a replacement gateway feature — it's a **decision and explainability layer** that sits above whatever executes the retry. The distinction that matters:
 
 ```text
 Gateway-native retry           RecoverAI
-─────────────────────          ─────────────────────────────
+─────────────────────          ─────────────────────
 Fixed retry schedule           Failure-aware strategy per cause
-
-Limited explanation            Every decision explained + audited
-
+Opaque to the merchant         Every decision explained + audited
 One-size-fits-all              Confidence-gated, amount-gated
+No cross-failure visibility    Dashboard-level recovery intelligence
+Retry only                     Retry, reminder, review, or stop
 
-Gateway-level visibility       Recovery intelligence across failures
-
-Retry focused                  Retry, reminder, review, or stop
 ```
 
-In practice, RecoverAI could sit above a gateway's native retry capability as the decision layer, or operate independently for merchants that want greater visibility and control.
-
-RecoverAI does **not** claim to automatically outperform gateway-native recovery on raw retry success rate.
-
-Its differentiated value is:
-
-```text
-Explainability
-+
-Safety Control
-+
-Auditability
-+
-Recovery Intelligence
-+
-Operator Visibility
-```
+In practice, RecoverAI could sit in front of a gateway's native retry as the decision layer, or operate independently for merchants who want visibility and control the gateway doesn't expose. This overview does not claim to out-perform gateway-native recovery on raw success rate — the differentiated value is **explainability, safety control, and auditability**, not a better retry algorithm.
 
 ---
 
@@ -119,30 +135,27 @@ Verify Payment Result
 Record Audit Trail
       ↓
 Measure Revenue Recovered
+
 ```
-
-The core product philosophy is:
-
-> **Detect accurately → decide explainably → constrain deterministically → execute safely → verify independently → audit everything.**
 
 ---
 
 # Example: A Recovery That Proceeds
 
-Consider a failed payment:
+Consider the canonical allowed transaction:
 
 ```text
-Transaction:
-RX18492
-
-Amount:
-₹7,499
+Transaction: RX18492
+Amount: ₹7,499
 
 Failure:
 BANK_UNAVAILABLE
+
+Retry Count:
+0
 ```
 
-RecoverAI analyzes it as:
+RecoverAI deterministically classifies and evaluates it as:
 
 ```text
 Failure Category:
@@ -153,29 +166,20 @@ Confidence:
 
 Recommended Action:
 DELAYED_RETRY
-
-Retry Delay:
-30 minutes
 ```
 
-Before executing the recovery, the Guardrail Engine verifies:
+Before execution, the Guardrail Engine verifies:
 
 ```text
 Confidence               94%          ✓
-
 Retry Count               0 / 2       ✓
-
 Amount Threshold          ₹7,499      ✓
 
-Stop Condition            False       ✓
-
-
 GUARDRAIL STATUS
-
 ✓ ALLOWED
 ```
 
-The recovery can then proceed:
+The canonical workflow may then proceed:
 
 ```text
 DETECT
@@ -191,74 +195,65 @@ EXECUTE
 VERIFY
 ```
 
-In the current Buildathon implementation:
+For deterministic demo execution, the result must be labeled:
 
 ```text
-EXECUTION MODE:
 SIMULATION
 ```
 
-If verification confirms the simulated recovery:
+For the integrated payment path, the environment must be labeled:
 
 ```text
-₹7,499 RECOVERED
+RAZORPAY TEST MODE
 ```
 
-This amount may be reflected in simulated/demo recovery metrics.
+A recovery may be shown as successful only after the relevant verification path confirms success.
 
-It must not be represented as actual merchant revenue while execution remains simulated.
+A simulated ₹7,499 recovery demonstrates RecoverAI logic.
+
+A verified Razorpay Test Mode payment demonstrates the gateway integration in a test environment.
+
+Neither is evidence of production merchant revenue recovery.
 
 ---
 
 # Example: A Recovery Guardrails Stop
 
-The safety story is only convincing if the guardrails actually stop something.
-
-Consider:
+The canonical safety case is:
 
 ```text
-Transaction:
-RX20117
-
-Amount:
-₹68,000
+Transaction: RX20117
+Amount: ₹68,000
 
 Failure:
 BANK_UNAVAILABLE
 
 Retry Count:
-2 / 2
+2
 ```
 
-RecoverAI evaluates:
+The deterministic guardrail result is:
 
 ```text
 Retry Count               2 / 2       ✗
-Maximum retry threshold reached
-
-Amount Threshold          ₹68,000     ✗
-Above automatic recovery amount threshold
-
+Amount                     ₹68,000     above automatic amount ceiling
 
 GUARDRAIL STATUS
-
 ⛔ BLOCKED
 ```
 
-RecoverAI does not perform a third silent retry.
-
-The actual blocked execution flow is:
+Once the workflow is blocked:
 
 ```text
 DETECT
-   ↓
+  ↓
 CLASSIFY
-   ↓
+  ↓
 DECIDE
-   ↓
+  ↓
 GUARDRAIL
-   ↓
-BLOCKED
+  ↓
+STOP
 ```
 
 There must be no:
@@ -268,19 +263,13 @@ EXECUTE
 VERIFY
 ```
 
-events for that blocked attempt.
+for that blocked attempt.
 
-The blocking reason is recorded in the audit trail.
+RecoverAI does not silently attempt another retry.
 
-This is an important part of the RecoverAI demo because it demonstrates:
+Agent Replay and the audit trail must stop at the actual guardrail event and show the blocking reason.
 
-```text
-RecoverAI is not an AI
-that simply keeps retrying.
-
-RecoverAI is designed
-to recover safely.
-```
+This safety case is a core part of the product story, not an edge case to hide.
 
 ---
 
@@ -288,26 +277,20 @@ to recover safely.
 
 ## 1. Failure Classifier
 
-The Failure Classifier identifies the type of payment failure.
+Identifies the type of payment failure.
 
-Supported failure codes include:
+Examples:
 
 ```text
 BANK_UNAVAILABLE
-
 NETWORK_ERROR
-
 PAYMENT_TIMEOUT
-
 INSUFFICIENT_FUNDS
-
 MANDATE_FAILURE
-
 CUSTOMER_ABANDONED
-
 ISSUER_DECLINED
-
 UNKNOWN_ERROR
+
 ```
 
 It determines:
@@ -318,317 +301,158 @@ It determines:
 - Recommended action
 - Retry delay
 - Confidence score
-- Explanation
-
-Example:
-
-```text
-BANK_UNAVAILABLE
-      ↓
-TRANSIENT_BANK_FAILURE
-      ↓
-Retryable
-      ↓
-DELAYED_RETRY
-      ↓
-94% confidence
-```
 
 ---
 
 ## 2. Recovery Engine
 
-The Recovery Engine converts failure classification into a structured recovery strategy.
+Converts the failure classification into a structured recovery strategy.
 
 Possible actions include:
 
 ```text
 DELAYED_RETRY
-
 SHORT_RETRY
-
 VERIFY_THEN_RETRY
-
 CUSTOMER_REMINDER
-
 SEND_CHECKOUT_REMINDER
-
 REQUEST_NEW_PAYMENT_METHOD
-
 ALTERNATIVE_PAYMENT_METHOD
-
 MANUAL_REVIEW
+STOP
+
 ```
-
-A recovery may also end in a safe stopped state when no appropriate automatic action exists.
-
-The Recovery Engine determines:
-
-```text
-What should RecoverAI do?
-```
-
-It does not independently determine:
-
-```text
-Is it safe to execute?
-```
-
-That responsibility belongs to the Guardrail Engine.
 
 ---
 
 ## 3. Guardrail Engine
 
-The Guardrail Engine protects customers and merchants from unsafe automated actions.
+Prevents unsafe automated actions.
 
-Guardrail categories include:
+Guardrails include:
 
-```text
-Maximum retry limit
-
-Minimum confidence threshold
-
-Minimum confidence floor
-
-Automatic recovery amount threshold
-
-Manual-review conditions
-
-Stop conditions
-
-Duplicate / idempotency protection
-```
-
-Additional P1 safety controls include:
-
-```text
-Retry cooldown
-
-Consecutive failure limits
-
-Historical recovery state
-```
-
-Canonical runtime configuration lives in:
-
-```text
-backend/core/config.py
-```
+- Maximum retry limit (2 retries)
+- Minimum confidence threshold (80% auto-execute, 50% floor for any action)
+- Recovery amount threshold (₹50,000 auto-approval ceiling)
+- Retry cooldown (15 minutes between attempts)
+- Duplicate request protection
+- Manual-review conditions
+- Stop conditions
+- Consecutive failure limits
 
 The recovery executor cannot proceed when:
 
 ```text
 can_execute = false
-```
 
-Possible Guardrail outcomes:
-
-```text
-ALLOWED
-
-BLOCKED
-
-REVIEW_REQUIRED
 ```
 
 ---
 
 ## 4. Recovery Executor
 
-The Recovery Executor coordinates one recovery attempt.
+The Recovery Executor orchestrates an approved recovery attempt.
 
 Responsibilities include:
 
+- Resolving idempotency
+- Running the selected recovery strategy
+- Respecting the Guardrail decision
+- Supporting deterministic simulation
+- Integrating with Razorpay Test Mode through the isolated gateway service
+- Verifying recovery outcomes
+- Persisting/finalizing recovery state
+- Calculating recovered amount only from the applicable verified outcome
+- Generating audit events
+
+The executor must never continue automatically when:
+
 ```text
-Resolve idempotency
-      ↓
-DETECT
-      ↓
-CLASSIFY
-      ↓
-DECIDE
-      ↓
-GUARDRAIL
-      ↓
-EXECUTE / SIMULATE
-      ↓
-VERIFY
-      ↓
-AUDIT
+can_execute = false
 ```
 
-During the current Buildathon P0:
+or when the guardrail status is:
 
 ```text
-Execution = SIMULATION
-```
-
-Future integration may connect allowed actions to:
-
-```text
-Razorpay Test Mode
-```
-
-The executor is responsible for:
-
-- Creating audit events
-- Respecting the Guardrail Decision
-- Executing or simulating approved actions
-- Verifying the resulting payment state
-- Calculating recovered amount
-- Preventing duplicate execution through idempotency
-- Returning a structured execution result
-
----
-
-## 5. Verification
-
-RecoverAI deliberately separates:
-
-```text
-EXECUTION
-```
-
-from:
-
-```text
-VERIFICATION
-```
-
-A successful API or execution call does not automatically prove that payment recovery succeeded.
-
-Required principle:
-
-```text
-EXECUTE
-   ↓
-VERIFY
-   ↓
-FINAL STATUS
-```
-
-Only a successfully verified recovery can become:
-
-```text
-RECOVERED
-```
-
-and contribute to:
-
-```text
-Revenue Recovered
-```
-
----
-
-## 6. Audit Trail
-
-Every important recovery step is recorded.
-
-Successful example:
-
-```text
-DETECT
-Payment failure detected
-
-CLASSIFY
-Transient bank failure — 94% confidence
-
-DECIDE
-Delayed retry selected
-
-GUARDRAIL
-Action allowed
-
-EXECUTE
-Simulated recovery attempt started
-
-VERIFY
-Recovery successfully verified
-```
-
-Blocked example:
-
-```text
-DETECT
-Payment failure detected
-
-CLASSIFY
-Failure classified
-
-DECIDE
-Recovery strategy considered
-
-GUARDRAIL
 BLOCKED
+REVIEW_REQUIRED
 ```
 
-No fake execution events should be created when execution never occurred.
-
-Audit events provide transparency into how RecoverAI reached and executed—or refused—a decision.
+Razorpay Test Mode execution remains non-production.
 
 ---
 
-## 7. Idempotency
+## 5. Audit Trail
 
-Financial recovery operations require duplicate-execution protection.
+Every important recovery step is recorded from backend workflow events.
 
-Conceptual flow:
-
-```text
-Recovery Request
-      ↓
-Resolve Idempotency Key
-      ↓
-Already processed?
-   ↙             ↘
- YES             NO
- ↓                ↓
-Return old       Reserve key
-result           before execution
-                    ↓
-                 Execute once
-                    ↓
-                 Persist/finalize result
-```
-
-The current P0 implementation uses:
+Successful canonical sequence:
 
 ```text
-in-memory idempotency
+DETECT
+CLASSIFY
+DECIDE
+GUARDRAIL
+EXECUTE
+VERIFY
 ```
 
-This demonstrates duplicate protection inside one backend process.
+Blocked canonical sequence:
 
-It is not crash-safe.
+```text
+DETECT
+CLASSIFY
+DECIDE
+GUARDRAIL
+```
 
-Before depending on true external financial execution, the idempotency state must become persistent.
+The UI must not add fictional `EXECUTE` or `VERIFY` stages merely for visual completeness.
+
+RecoverAI now has a persistent Supabase/PostgreSQL path for gateway/recovery-linked state and audit-related persistence.
+
+Controlled in-memory state may still exist in deterministic tests or simulation paths, but it must not be represented as the durable gateway-linked persistence mechanism.
+
+This audit history powers Agent Replay.
 
 ---
 
-## 8. AI Reasoning Layer
+## 6. AI Reasoning Layer
 
-AI is intended to generate understandable explanations and operator-facing insights.
+The AI explanation layer is implemented.
+
+Its job is to explain deterministic RecoverAI decisions clearly to an operator.
 
 AI may:
 
 - Explain why a payment failed
-- Summarize transaction context
-- Explain the selected recovery strategy
-- Generate human-readable reasoning
-- Help operators understand unusual failures
+- Summarize deterministic transaction context
+- Explain the proposed recovery strategy
+- Explain the supplied guardrail state
+- Produce operator-facing reasoning grounded in the deterministic result
+
+Current provider integration uses GroqCloud-compatible chat-completion infrastructure.
+
+If the provider is unavailable or its response is unusable:
+
+```text
+AI unavailable
+      ↓
+deterministic fallback explanation
+      ↓
+core recovery continues
+```
 
 AI may **not**:
 
 - Override guardrails
 - Ignore retry limits
-- Override idempotency
+- Change deterministic classification
+- Change the selected recovery action
+- Change confidence values
 - Mark payments as successful
 - Bypass verification
 - Execute privileged payment actions independently
-
-The AI reasoning layer is a P1 feature and is not part of the current verified deterministic recovery path.
+- Claim revenue was recovered without verified payment state
 
 ---
 
@@ -638,7 +462,7 @@ RecoverAI follows:
 
 > **Deterministic core + AI-assisted intelligence**
 
-The architecture is:
+The authority flow is:
 
 ```text
 Failure Rules
@@ -647,26 +471,26 @@ Recovery Rules
       ↓
 Guardrails
       ↓
-Approved / Blocked Decision
+Deterministic Decision
       ↓
 AI Explanation
-      ↓
-Allowed Execution
-      ↓
-Verification
 ```
 
-This ensures that AI enhances the product without becoming an uncontrolled authority over financial operations.
-
-If AI is unavailable:
+When execution is permitted:
 
 ```text
-AI unavailable
+Guardrail = ALLOWED
       ↓
-Deterministic explanation
+Execution / Test Integration
       ↓
-Core recovery continues
+Verification
+      ↓
+Audit
 ```
+
+AI explains the decision; it does not authorize payment execution.
+
+This keeps explanation quality separable from financial safety.
 
 ---
 
@@ -674,206 +498,117 @@ Core recovery continues
 
 One of RecoverAI's key differentiators is **Agent Replay**.
 
-For a recovery transaction, operators can visually replay the actual backend decision process.
+Agent Replay uses the backend audit events that actually exist for a transaction.
 
-Successful example:
+Successful canonical replay:
 
 ```text
-₹7,499 PAYMENT FAILED
+RX18492
+₹7,499
+BANK_UNAVAILABLE
 
         ↓
-
 DETECT
-Bank unavailable
 
         ↓
-
 CLASSIFY
-Transient bank failure
-94% confidence
+TRANSIENT_BANK_FAILURE
+94%
 
         ↓
-
 DECIDE
-Delayed retry
-30 minutes
+DELAYED_RETRY
 
         ↓
-
 GUARDRAIL
-Retry 0 / 2
 ✓ ALLOWED
 
         ↓
-
 EXECUTE
-Simulated recovery attempt
 
         ↓
-
 VERIFY
-Recovery confirmed
-
-        ↓
-
-₹7,499 RECOVERED
 ```
 
-Agent Replay must be driven by:
-
-```text
-GET /api/recovery/audit/{transaction_id}
-```
-
-The frontend animates the backend events.
-
-It must not invent a fixed timeline.
-
-For the blocked transaction:
+Blocked canonical replay:
 
 ```text
 RX20117
-```
+₹68,000
+retry_count = 2
 
-the expected replay is:
-
-```text
+        ↓
 DETECT
-   ↓
+
+        ↓
 CLASSIFY
-   ↓
+
+        ↓
 DECIDE
-   ↓
+
+        ↓
 GUARDRAIL
 ⛔ BLOCKED
+
+        ↓
+STOP
 ```
 
-The timeline must terminate there.
+The blocked replay must not create `EXECUTE` or `VERIFY`.
 
-No fake:
-
-```text
-EXECUTE
-VERIFY
-```
-
-should appear.
-
-This makes Agent Replay both:
-
-```text
-explainability
-+
-auditability
-```
-
-rather than simply decorative animation.
+Motion progressively visualizes backend history; it does not create financial events or change their meaning.
 
 ---
 
 # RecoverAI Command Center
 
-The frontend provides a premium financial operations dashboard showing:
+The frontend provides a premium financial-operations dashboard showing recovery-oriented information such as:
 
 ```text
 Revenue at Risk
-
 Revenue Recovered
-
 Recovery Rate
-
 Active Recoveries
-
 Failed Payments
-
 Recovered Today
 ```
 
-Potential secondary metrics include:
+It also includes product surfaces for:
 
-```text
-Successful Retries
-
-Manual Reviews
-
-Guardrail Blocks
-
-Average Recovery Time
-```
-
-The Command Center also includes or is planned to include:
-
-- Recovery queue
+- Recovery queue / transactions
 - Failure details
-- Recovery actions
+- Recovery Agent
 - Decision Drawer
 - Agent Replay
 - Guardrail status
+- Activity
 - Audit history
-- Agent activity
-- Recovery performance visualization
+- Settings
+- Authentication
 
-The current dashboard metrics are:
+Current dashboard values include demo/sample data.
+
+Any illustrative financial metric must be visibly labeled as:
 
 ```text
 DEMO DATA
+SIMULATION
+TEST ENVIRONMENT
 ```
 
-and must be visibly labeled accordingly until calculated from persisted recovery data.
+where appropriate.
 
----
+Search or notification controls should only be presented as working features when actually wired to behavior.
 
-# Decision Drawer
-
-The Decision Drawer explains one recovery decision.
-
-It may display:
-
-```text
-Transaction ID
-
-Amount
-
-Failure Code
-
-Failure Category
-
-Confidence
-
-Recommended Action
-
-Retry Delay
-
-Simulation Probability
-
-Retry Count
-
-Guardrail Status
-
-Execution Status
-
-Recovered Amount
-
-Explanation
-
-Agent Replay
-```
-
-The drawer consumes backend recovery data.
-
-It does not own financial safety logic.
-
-Opening the drawer itself must not trigger a recovery attempt.
-
-Execution requires an explicit action.
+Settings must not infer Razorpay or AI-provider availability solely from the generic backend health endpoint.
 
 ---
 
 # Real-Time Experience
 
-RecoverAI is planned to support real-time dashboard updates.
+Server-Sent Events remain an optional/future enhancement.
 
-Target:
+Target architecture may support:
 
 ```text
 FastAPI
@@ -883,147 +618,117 @@ Server-Sent Events
 React Dashboard
 ```
 
-Potential live updates include:
+The current product must not label ordinary API-refreshed activity as real-time server-push behavior unless SSE or an equivalent live channel is actually active.
 
-```text
-New audit event
-
-Recovery status changed
-
-Revenue recovered
-
-Recovery blocked
-```
-
-If SSE is not available by demo time, polling may be used as the documented fallback.
-
-Real-time SSE is P1 and is not currently part of the verified P0 architecture.
+The existing REST API and backend audit trail are sufficient for the current recovery and Agent Replay experience.
 
 ---
 
 # Razorpay Integration
 
-RecoverAI is planned to integrate with:
+RecoverAI integrates with **Razorpay Test Mode**.
+
+Current implemented browser-facing operations include:
 
 ```text
-Razorpay Test Mode
+POST /api/razorpay/recovery-order
+POST /api/razorpay/verify-payment
+POST /api/razorpay/reconcile-payment
 ```
 
-The payment integration layer will handle:
+The integration supports:
 
-- Test payment operations
-- Payment status verification
-- Failure handling
-- Payment webhooks
-- Recovery verification
+- Creating/reusing a Test Mode recovery order from trusted backend recovery state
+- Reading Razorpay Test Mode payment/order state
+- Server-side payment verification
+- Independent reconciliation
+- Persisting gateway-linked state
+- Receiving signed Razorpay webhooks
+- Synchronizing trusted captured-payment state
 
-Razorpay-specific logic belongs inside:
-
-```text
-razorpay_service.py
-```
-
-or an equivalent isolated gateway service.
+Razorpay-specific logic remains isolated inside the backend gateway/integration layer.
 
 Sensitive Razorpay credentials remain backend-only.
 
-RecoverAI does not use production customer money during the Buildathon.
+The browser-facing Razorpay APIs require RecoverAI user authentication.
+
+Razorpay remains **Test Mode only** for the Buildathon.
 
 ---
 
 # Webhook Flow
 
-Payment events can eventually enter RecoverAI through Razorpay webhooks.
+Razorpay webhook support is implemented in Test Mode.
 
-Target:
+Current trust boundary:
 
 ```text
 Razorpay
      ↓
-Webhook
+POST /api/razorpay/webhook
      ↓
-Verify Signature
+Verify X-Razorpay-Signature
      ↓
 Invalid?
-YES → REJECT
+ YES → Reject
+     ↓ NO
+Check duplicate event
      ↓
-Check Duplicate Event
+Map supported event
      ↓
-Map Payment Event
+Persist/link trusted gateway state
      ↓
-Trigger Existing RecoverAI Pipeline
+Reuse RecoverAI safety/idempotency/verification logic
 ```
 
-Example:
+The webhook does **not** require a Supabase browser-user JWT.
 
-```text
-payment.failed
-       ↓
-DETECT
-       ↓
-CLASSIFY
-       ↓
-DECIDE
-       ↓
-GUARDRAIL
-       ↓
-RECOVERY PIPELINE
-```
+Browser authentication and Razorpay webhook signature authentication are separate trust boundaries.
 
-Webhook handling must not create a separate recovery architecture.
+Current verified webhook behavior includes trusted `payment.captured` synchronization and persistence/linkage of captured payment/order state.
 
-It must reuse:
+Duplicate delivery must not create duplicate financial execution.
 
-```text
-Classifier
-Recovery Engine
-Guardrails
-Idempotency
-Executor
-Verification
-Audit
-```
+Unsupported or future event mappings must not be claimed as implemented until corresponding code/tests exist.
 
 ---
 
 # Database
 
-RecoverAI is planned to use:
+RecoverAI uses:
 
 **Supabase + PostgreSQL**
 
-Core tables:
+for durable gateway/recovery-linked state.
+
+The persistent path supports areas such as:
 
 ```text
-merchants
+recovery jobs
+gateway order/payment linkage
+verification/reconciliation state
+persistent idempotency
+audit-related persistence
+```
 
+Conceptual product entities may also include:
+
+```text
 transactions
-
-recovery_jobs
-
 audit_events
-
 recovery_metrics
 ```
 
-The database will store:
-
-- Transaction information
-- Recovery state
-- Execution/idempotency state
-- Audit events
-- Calculated recovery results
-- Dashboard metrics
-
-Financial values should ultimately use integer smallest-currency units where appropriate.
-
-For INR:
+Future multi-merchant architecture may introduce or fully enforce:
 
 ```text
-paise
+merchants
+merchant_id
+merchant-scoped authorization
+tenant isolation
 ```
 
-Current P0 storage remains in-memory where explicitly documented.
+Authentication does not by itself prove merchant-level data isolation.
 
 ---
 
@@ -1033,71 +738,59 @@ Current P0 storage remains in-memory where explicitly documented.
 
 ```text
 React
-
 TypeScript
-
 Vite
-
 Motion for React
-
 Recharts
-
 Lucide React
+Supabase JavaScript client
+React Router
 ```
 
 ## Backend
 
 ```text
 Python
-
 FastAPI
-
 Pydantic
-
 Uvicorn
+pytest
 ```
 
-## Database
-
-Target:
+## Database / Authentication
 
 ```text
 Supabase
-
 PostgreSQL
+Supabase Auth
 ```
 
 ## Payments
 
-Target:
-
 ```text
 Razorpay Test Mode
-
-Razorpay Webhooks
+Signed Razorpay Webhooks
 ```
 
 ## AI
 
-Target:
-
 ```text
-LLM-assisted reasoning
-+
 Deterministic recovery intelligence
++
+GroqCloud-compatible explanation provider
++
+Deterministic fallback
 ```
 
-## Deployment
-
-Target:
+## Deployment Target
 
 ```text
-Frontend → Vercel
-
-Backend → Render / Railway
-
+Frontend → Vercel or equivalent
+Backend  → Render / Railway or equivalent
 Database → Supabase
 ```
+
+Deployment remains a target until final deployed smoke testing is complete.
 
 ---
 
@@ -1107,43 +800,47 @@ Database → Supabase
                     USER
                       │
                       ▼
-
-              React Frontend
+             React Frontend
                       │
-                   REST API
+              Supabase Session
+                      │
+         Authorization: Bearer <JWT>
                       │
                       ▼
-
-               FastAPI Backend
+              FastAPI Backend
                       │
-        ┌─────────────┴─────────────┐
-        │                           │
-        ▼                           ▼
-
-Recovery Intelligence         Data Layer
-        │                           │
-        ├── Failure Classifier      ├── Current: memory
-        ├── Recovery Engine         │
-        ├── Guardrail Engine        └── Target: PostgreSQL
-        ├── Recovery Executor
-        ├── Verification
-        └── AI Reasoner (P1)
-        │
-        ▼
-
-          Razorpay Test Mode
-                 P1
+       ┌──────────────┼──────────────┐
+       │              │              │
+       ▼              ▼              ▼
+Recovery Core    Supabase /      AI Explanation
+                 PostgreSQL       Layer
+       │
+       ├── Failure Classifier
+       ├── Recovery Engine
+       ├── Guardrail Engine
+       ├── Recovery Executor
+       ├── Verification
+       └── Audit
+       │
+       ▼
+Razorpay Test Mode
 ```
 
-Future live experience:
+Separate webhook trust boundary:
 
 ```text
-FastAPI
+Razorpay
    ↓
-SSE
+signed webhook
    ↓
-React
+/api/razorpay/webhook
+   ↓
+signature verification
 ```
+
+Authentication is implemented for browser-facing protected APIs.
+
+Tenant/merchant isolation is not currently implemented.
 
 ---
 
@@ -1157,35 +854,23 @@ Instead, it provides:
 
 ### Explainable Decisions
 
-Every recovery decision contains structured reasoning and confidence.
+Every recovery decision includes reasoning and confidence.
 
 ### Deterministic Safety
 
-Guardrails control whether an action can execute.
-
-### Safe Blocking
-
-RecoverAI deliberately demonstrates when a payment recovery should **not** execute.
-
-### Independent Verification
-
-An execution request does not automatically become financial success.
-
-### Idempotent Execution
-
-Duplicate recovery requests are prevented from blindly executing the same attempt again.
+Guardrails control whether an action can actually execute — and visibly stop it when it shouldn't (see the RX20117 example above).
 
 ### Measurable Business Impact
 
-RecoverAI measures verified or simulated recovery outcomes while clearly distinguishing simulation from actual revenue.
+RecoverAI can report verified recovery outcomes and clearly labeled simulated/demo recovery impact. Production merchant revenue must not be inferred from simulation or Razorpay Test Mode.
 
 ### Complete Auditability
 
-Every stage that actually occurred is recorded.
+Every stage of the recovery workflow is recorded.
 
 ### Recovery Agent Replay
 
-Users can visually inspect how the system handled a failed payment, including blocked decisions.
+Users can visually inspect exactly how the system handled a failed payment, whether it succeeded or was blocked.
 
 ### Failure-Aware Recovery
 
@@ -1193,283 +878,123 @@ Different failures receive different recovery strategies.
 
 ### Safe AI Architecture
 
-AI assists with reasoning and explanation but cannot override deterministic financial safety rules.
+The LLM assists but cannot override financial safety rules.
 
 ---
 
 # Example Dashboard Metrics
 
-Current demo dashboard values include:
-
-```text
-Revenue at Risk          ₹2,48,400
-
-Revenue Recovered        ₹1,71,920
-
-Recovery Rate               69.2%
-
-Active Recoveries              47
-
-Failed Payments                84
-
-Recovered Today            ₹31,900
-```
-
-These values are:
+Current canonical dashboard/demo values include:
 
 ```text
 DEMO DATA
-SIMULATION ENVIRONMENT
+
+Revenue at Risk          ₹2,48,400
+Revenue Recovered        ₹1,71,920
+Recovery Rate               69.2%
+Active Recoveries              47
+Failed Payments                 84
+Recovered Today            ₹31,900
 ```
 
-They are not current merchant production metrics.
+These values support the current demo/operator experience.
 
-Future persisted metrics should be calculated from actual stored transaction/recovery data.
+They must not be presented as measured production merchant performance unless they are later calculated from persisted verified merchant transaction data.
 
 ---
 
 # Buildathon Scope — What's Actually Built vs. Planned
 
-Everything above describes the full product vision.
-
-To avoid overstating the demo, the current verified build status as of **2026-08-23** is:
+As of **2026-09-04**, the verified product state is:
 
 ```text
-IMPLEMENTED / VERIFIED
+Core Recovery
 
-React + TypeScript + Vite frontend          ✅
-
-FastAPI backend                             ✅
-
-Dashboard shell + Motion UI                 ✅
-
-Frontend ↔ Backend communication            ✅
-
-Failure Classifier                          ✅
-
-Recovery Engine                             ✅
-
-Guardrail Engine                            ✅
-
-Recovery Executor                           ✅
-
-Deterministic recovery simulation           ✅
-
+Failure Classifier                         ✅
+Recovery Engine                            ✅
+Guardrail Engine                           ✅
+Recovery Executor                          ✅
+Deterministic Simulation                   ✅
 Verification                               ✅
+Audit API / Agent Replay                   ✅
 
-In-memory Audit Trail                       ✅
 
-In-process Idempotency                      ✅
+Frontend
 
-Execute API                                 ✅
+Premium React/Vite application             ✅
+Dashboard / Transactions                   ✅
+Recovery Agent                             ✅
+Activity / Guardrails / Settings           ✅
+Signup / Login                             ✅
+Protected frontend routing                 ✅
+Authenticated API helper                   ✅
+Frontend production build                  ✅
 
-Audit API                                   ✅
 
-Successful recovery backend flow            ✅
+Persistence / AI
 
-Blocked recovery backend flow               ✅
+Supabase/PostgreSQL persistence            ✅
+Persistent gateway/recovery state          ✅
+Persistent idempotency path                ✅
+AI explanation layer                       ✅
+Deterministic AI fallback                  ✅
+GroqCloud provider integration             ✅
 
-Decision Drawer                             ✅
 
-Simulation / Demo labels                    ✅
+Razorpay Test Mode
 
-Backend automated tests                     ✅
-12 / 12 passed
+Recovery-order API                         ✅
+Payment verification API                   ✅
+Payment reconciliation API                 ✅
+Signed webhook                             ✅
+Webhook signature verification             ✅
+Captured payment synchronization           ✅
 
-Backend import chain                        ✅
-5 / 5 verified
-
-Frontend production build                   ✅
-```
-
-Current Agent Replay state:
-
-```text
-Implementation                              ✅
-
-Decision Drawer integration                 ✅
-
-Production compilation                      ✅
-
-Final successful visual replay verification  PENDING
-
-Final blocked visual replay verification     PENDING
-```
-
-Therefore the strict P0 state remains:
-
-```text
-13 / 14 verified
-```
-
-until both Agent Replay browser scenarios are explicitly confirmed.
-
-Planned, not yet implemented or verified:
-
-```text
-Supabase persistence
-
-Persistent audit storage
-
-Persistent idempotency
-
-Calculated database-backed dashboard metrics
-
-AI Reasoning Layer
-
-Razorpay Test Mode integration
-
-Razorpay Webhooks
-
-Webhook signature verification
-
-Real-time SSE updates
 
 Authentication
 
-Multi-merchant tenancy
+Supabase Auth                              ✅
+Backend Bearer-token validation            ✅
+Protected browser-facing APIs              ✅
 
-Production deployment
+
+Quality
+
+Backend regression suite                   ✅
+47 passed / 0 failed                       ✅
+2 non-blocking Supabase client warnings    ⚠
+
+
+Future / Not Implemented
+
+Multi-merchant tenancy                     ❌
+Merchant-level authorization               ❌
+Cross-merchant data isolation              ❌
+Production Razorpay processing             ❌
+SSE live dashboard updates                 optional/future
+Production multi-worker concurrency proof  future
+Deployment/demo freeze                     remaining
 ```
 
-The current recovery demo runs against:
+Important product boundaries:
 
 ```text
-SIMULATION
+Authentication
+≠
+Tenant isolation
+
+Razorpay Test Mode
+≠
+Production payment processing
+
+Simulation
+≠
+Real merchant revenue
+
+AI explanation
+≠
+Financial authority
 ```
-
-not live Razorpay financial execution.
-
-This is a deliberate Buildathon architecture choice.
-
-The system first demonstrates that it can correctly determine:
-
-```text
-whether
-+
-why
-+
-how safely
-```
-
-a recovery action should occur.
-
-Gateway integration is added only after that safety core is stable.
-
----
-
-# P0 Demo Cases
-
-## Demo A — Successful Recovery
-
-```text
-Transaction:
-RX18492
-
-Amount:
-₹7,499
-
-Failure:
-BANK_UNAVAILABLE
-
-Retry Count:
-0
-
-        ↓
-
-CLASSIFY
-
-        ↓
-
-TRANSIENT_BANK_FAILURE
-94%
-
-        ↓
-
-DELAYED_RETRY
-
-        ↓
-
-GUARDRAIL
-ALLOWED
-
-        ↓
-
-EXECUTE
-SIMULATION
-
-        ↓
-
-VERIFY
-
-        ↓
-
-RECOVERED
-₹7,499
-```
-
-Expected Agent Replay:
-
-```text
-DETECT
-CLASSIFY
-DECIDE
-GUARDRAIL
-EXECUTE
-VERIFY
-```
-
----
-
-## Demo B — Guardrail Protection
-
-```text
-Transaction:
-RX20117
-
-Amount:
-₹68,000
-
-Failure:
-BANK_UNAVAILABLE
-
-Retry Count:
-2 / 2
-
-        ↓
-
-CLASSIFY
-
-        ↓
-
-DECIDE
-
-        ↓
-
-GUARDRAIL
-
-        ↓
-
-BLOCKED
-```
-
-Expected Agent Replay:
-
-```text
-DETECT
-CLASSIFY
-DECIDE
-GUARDRAIL
-```
-
-Forbidden:
-
-```text
-EXECUTE
-VERIFY
-```
-
-This demonstrates that RecoverAI is designed to stop unsafe recovery attempts rather than maximize retries at any cost.
 
 ---
 
@@ -1488,225 +1013,61 @@ RecoverAI is designed for:
 
 # Business Value
 
-RecoverAI aims to help businesses:
+RecoverAI is designed to help businesses:
 
 - Reduce revenue loss caused by recoverable payment failures
-- Improve payment recovery workflows
-- Reduce unnecessary payment retries
+- Avoid unnecessary or unsafe retries
 - Reduce manual recovery operations
-- Improve customer experience
+- Improve operator visibility
 - Make recovery decisions explainable
-- Maintain clear safety controls
-- Measure how much revenue recovery strategies generate
+- Maintain explicit safety controls
+- Verify payment outcomes before counting recovery
+- Maintain an auditable recovery history
 
----
+## Illustrative Impact — Hypothetical, Not Measured
 
-## Illustrative Impact — Directional, Not Measured
+The arithmetic below is a hypothetical example only.
 
-The following is an illustrative example only.
-
-It is **not a result produced by the current RecoverAI build**.
-
-```text
-Assume:
-
-₹1,00,00,000 monthly transaction volume
-
-~7% payment failure rate
-
-        ↓
-
-₹7,00,000 revenue at risk
-
-
-Assume ~40% of failures are recoverable
-
-        ↓
-
-₹2,80,000 recoverable pool
-
-
-Assume 60% of that recoverable pool is recovered
-
-        ↓
-
-₹1,68,000 illustrative recovered value
-```
-
-This example exists only to demonstrate the shape of the business opportunity.
-
-Actual recovery performance depends on factors such as:
+It is **not** based on measured RecoverAI merchant data and should not be described as an industry benchmark.
 
 ```text
-failure-code distribution
+Assume monthly transaction volume:           ₹1,00,00,000
+Assume payment failure rate:                           7%
+Illustrative revenue at risk:                   ₹7,00,000
 
-merchant risk policy
-
-retry rules
-
-customer behavior
-
-gateway behavior
-
-payment method
-
-timing
-
-verification outcomes
+Assume 40% of failures are recoverable:         ₹2,80,000
+Assume 60% recovery of that hypothetical pool:  ₹1,68,000
 ```
 
-RecoverAI should not present this illustrative number as a measured prediction for a merchant.
+These are intentionally simple assumptions showing how recovery economics can be modeled.
 
----
-
-# Current Limitations
-
-The current Buildathon prototype has explicit limitations.
-
-```text
-Recovery execution is simulated.
-
-Audit storage is currently in memory.
-
-Idempotency is currently in memory.
-
-Audit/idempotency state does not survive backend restart.
-
-Dashboard financial values are demo data.
-
-AI Reasoner is not implemented.
-
-Supabase persistence is not implemented.
-
-Razorpay Test Mode execution is not implemented.
-
-Razorpay webhooks are not implemented.
-
-Real-time SSE is not implemented.
-
-Authentication / tenancy are not implemented.
-```
-
-These limitations should be stated rather than hidden.
-
----
-
-# What RecoverAI Must Never Claim in the Current State
-
-Until those capabilities are genuinely implemented and verified, do not claim:
-
-```text
-RecoverAI recovered real merchant revenue.
-
-RecoverAI processed production payments.
-
-RecoverAI automatically outperforms gateway-native retry systems.
-
-The LLM currently controls recovery decisions.
-
-Razorpay webhooks are active.
-
-Supabase persistence is complete.
-
-Idempotency survives process crashes.
-
-Dashboard metrics come from real merchant transactions.
-
-RecoverAI is production-ready.
-```
-
----
-
-# Buildathon Product Story
-
-The clearest product story is:
-
-```text
-A payment fails.
-
-        ↓
-
-RecoverAI identifies why it failed.
-
-        ↓
-
-RecoverAI selects an appropriate recovery strategy.
-
-        ↓
-
-Deterministic guardrails decide whether that action is safe.
-
-        ↓
-
-Allowed actions can execute/simulate.
-
-Unsafe actions stop.
-
-        ↓
-
-RecoverAI independently verifies the outcome.
-
-        ↓
-
-Every real step is recorded.
-
-        ↓
-
-Operators can inspect and replay the decision.
-
-        ↓
-
-Recovered value becomes measurable.
-```
-
-This demonstrates:
-
-```text
-AI-assisted intelligence
-+
-deterministic financial safety
-+
-explainability
-+
-auditability
-+
-measurable revenue recovery
-```
+Actual recovery performance would depend on real failure-code mix, customer behavior, gateway behavior, merchant policy, and measured verified outcomes.
 
 ---
 
 # Project Vision
 
-RecoverAI should demonstrate how AI agents can participate in financial workflows **without sacrificing safety, explainability, verification, or control**.
+RecoverAI should demonstrate how AI agents can participate in financial workflows **without sacrificing safety, explainability, verification, auditability, or control**.
 
 The core philosophy is:
 
 > **Detect accurately → decide explainably → constrain deterministically → execute safely → verify independently → audit everything.**
 
-RecoverAI turns failed payments from a static operational problem into an intelligent, measurable, and controlled revenue recovery workflow.
-### Frontend AI Decision Analysis
-
-The AI reasoning layer is now integrated into the existing recovery Decision Drawer.
-
-Frontend implementation:
+The product should also remain explicit about what is and is not implemented:
 
 ```text
-frontend/src/components/ai/AIReasoningPanel.tsx
-frontend/src/services/aiApi.ts
-frontend/src/types/ai.ts
-## RecoverAI Product Workspace
+Supabase authentication             implemented
+Persistent recovery state           implemented
+AI explanation layer                implemented
+Razorpay Test Mode                  implemented
+Signed webhook path                 implemented
 
-The frontend now provides routed product workspaces rather than a dashboard-only interface.
+Multi-merchant isolation            not implemented
+Production Razorpay processing      not implemented
+```
 
-Implemented routes:
+RecoverAI turns failed payments from a static operational problem into a controlled, explainable recovery workflow while keeping financial safety deterministic.
 
-```text
-/                 → Command Center
-/transactions     → Transactions
-/recovery-agent   → Recovery Agent
-/activity         → Activity
-/guardrails       → Guardrails
-/settings         → Settings
 ---
 
 # END OF PROJECT OVERVIEW

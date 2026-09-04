@@ -1,20 +1,26 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useState,
 } from "react";
 
 import {
-  Activity as ActivityIcon,
   CheckCircle2,
   Clock3,
   Search,
   ShieldAlert,
+  ShieldCheck,
   XCircle,
 } from "lucide-react";
 
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
+
+import {
+  PanelSkeleton,
+  StatePanel,
+} from "../components/ui/SystemState";
 
 import {
   getDashboardData,
@@ -39,29 +45,18 @@ import type {
 
 const COLORS = {
   surface: "#0D1116",
-
   elevated: "#11161C",
-
   border:
     "rgba(255,255,255,0.065)",
-
   borderSoft:
     "rgba(255,255,255,0.04)",
-
   text: "#F3F4F6",
-
   muted: "#9BA2AA",
-
   subtle: "#747B83",
-
   accent: "#E5DCC7",
-
   gold: "#93866A",
-
   success: "#A7BB86",
-
   warning: "#C7B58D",
-
   error: "#C97B74",
 };
 
@@ -92,12 +87,19 @@ function formatRupees(
     "en-IN",
     {
       style: "currency",
-
       currency: "INR",
-
       maximumFractionDigits: 0,
     },
   ).format(value);
+}
+
+
+function normalizeStatus(
+  status: string,
+) {
+  return status
+    .trim()
+    .toLowerCase();
 }
 
 
@@ -105,7 +107,9 @@ function getEventColor(
   event: AuditEvent,
 ) {
   const status =
-    event.status.toLowerCase();
+    normalizeStatus(
+      event.status,
+    );
 
   if (
     status.includes("success") ||
@@ -133,7 +137,9 @@ function EventIcon({
   event: AuditEvent;
 }) {
   const status =
-    event.status.toLowerCase();
+    normalizeStatus(
+      event.status,
+    );
 
   if (
     status.includes("block") ||
@@ -142,8 +148,10 @@ function EventIcon({
   ) {
     return (
       <XCircle
-        size={16}
-        color={COLORS.error}
+        size={15}
+        color={
+          COLORS.error
+        }
       />
     );
   }
@@ -154,7 +162,7 @@ function EventIcon({
   ) {
     return (
       <ShieldAlert
-        size={16}
+        size={15}
         color={
           getEventColor(
             event,
@@ -171,7 +179,7 @@ function EventIcon({
   ) {
     return (
       <CheckCircle2
-        size={16}
+        size={15}
         color={
           COLORS.success
         }
@@ -181,7 +189,7 @@ function EventIcon({
 
   return (
     <Clock3
-      size={16}
+      size={15}
       color={
         COLORS.warning
       }
@@ -222,12 +230,14 @@ export default function Activity() {
   const [
     loadingTransactions,
     setLoadingTransactions,
-  ] = useState(true);
+  ] =
+    useState(true);
 
   const [
     loadingAudit,
     setLoadingAudit,
-  ] = useState(false);
+  ] =
+    useState(false);
 
   const [
     error,
@@ -248,139 +258,150 @@ export default function Activity() {
   const [
     search,
     setSearch,
-  ] = useState("");
+  ] =
+    useState("");
 
 
   // =======================================================
   // LOAD TRANSACTIONS
   // =======================================================
 
-  useEffect(() => {
-    let active = true;
-
-    async function loadTransactions() {
-      try {
-        setLoadingTransactions(
-          true,
-        );
-
-        const response =
-          await getDashboardData();
-
-        if (!active) {
-          return;
-        }
-
-        setTransactions(
-          response.transactions,
-        );
-
-        if (
-          response.transactions
-            .length > 0
-        ) {
-          setSelectedTransactionId(
-            response.transactions[0]
-              .id,
+  const loadTransactions =
+    useCallback(
+      async () => {
+        try {
+          setLoadingTransactions(
+            true,
           );
-        }
+          setError(null);
 
-        setError(null);
-      } catch (err) {
-        if (!active) {
-          return;
-        }
+          const response =
+            await getDashboardData();
 
-        console.error(
-          "Activity transaction error:",
-          err,
-        );
+          const nextTransactions =
+            response.transactions ??
+            [];
 
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Unable to load transactions.",
-        );
-      } finally {
-        if (active) {
+          setTransactions(
+            nextTransactions,
+          );
+
+          setSelectedTransactionId(
+            (current) => {
+              if (
+                current &&
+                nextTransactions.some(
+                  (transaction) =>
+                    transaction.id ===
+                    current,
+                )
+              ) {
+                return current;
+              }
+
+              return (
+                nextTransactions[0]
+                  ?.id ?? null
+              );
+            },
+          );
+        } catch (err) {
+          console.error(
+            "Activity transaction error:",
+            err,
+          );
+
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Unable to load transactions.",
+          );
+        } finally {
           setLoadingTransactions(
             false,
           );
         }
-      }
-    }
+      },
+      [],
+    );
 
-    loadTransactions();
 
-    return () => {
-      active = false;
-    };
-  }, []);
+  useEffect(() => {
+    void loadTransactions();
+  }, [
+    loadTransactions,
+  ]);
 
 
   // =======================================================
   // LOAD AUDIT TRAIL
   // =======================================================
 
+  const loadAudit =
+    useCallback(
+      async (
+        transactionId: string,
+      ) => {
+        try {
+          setLoadingAudit(
+            true,
+          );
+          setAuditError(
+            null,
+          );
+
+          const events =
+            await getRecoveryAudit(
+              transactionId,
+            );
+
+          setAuditEvents(
+            events ?? [],
+          );
+        } catch (err) {
+          console.error(
+            "Audit API error:",
+            err,
+          );
+
+          setAuditEvents(
+            [],
+          );
+
+          setAuditError(
+            err instanceof Error
+              ? err.message
+              : "Unable to load audit trail.",
+          );
+        } finally {
+          setLoadingAudit(
+            false,
+          );
+        }
+      },
+      [],
+    );
+
+
   useEffect(() => {
     if (
       !selectedTransactionId
     ) {
-      setAuditEvents([]);
+      setAuditEvents(
+        [],
+      );
+      setAuditError(
+        null,
+      );
       return;
     }
 
-    let active = true;
-
-    async function loadAudit() {
-      try {
-        setLoadingAudit(true);
-
-        setAuditError(null);
-
-        const events =
-          await getRecoveryAudit(
-            selectedTransactionId!,
-          );
-
-        if (!active) {
-          return;
-        }
-
-        setAuditEvents(
-          events,
-        );
-      } catch (err) {
-        if (!active) {
-          return;
-        }
-
-        console.error(
-          "Audit API error:",
-          err,
-        );
-
-        setAuditEvents([]);
-
-        setAuditError(
-          err instanceof Error
-            ? err.message
-            : "Unable to load audit trail.",
-        );
-      } finally {
-        if (active) {
-          setLoadingAudit(false);
-        }
-      }
-    }
-
-    loadAudit();
-
-    return () => {
-      active = false;
-    };
+    void loadAudit(
+      selectedTransactionId,
+    );
   }, [
     selectedTransactionId,
+    loadAudit,
   ]);
 
 
@@ -425,6 +446,21 @@ export default function Activity() {
     ) ?? null;
 
 
+  const selectedBlocked =
+    selectedTransaction
+      ? normalizeStatus(
+          selectedTransaction.status,
+        ).includes(
+          "block",
+        )
+      : false;
+
+
+  function clearSearch() {
+    setSearch("");
+  }
+
+
   // =======================================================
   // RENDER
   // =======================================================
@@ -441,161 +477,190 @@ export default function Activity() {
         <section
           style={{
             padding:
-              "30px 32px 48px",
+              "10px 32px 48px",
           }}
         >
           {/* ================================================= */}
-          {/* PAGE HEADER                                       */}
+          {/* COMPACT PAGE CONTEXT                              */}
           {/* ================================================= */}
 
           <div
             style={{
-              display: "flex",
-
+              display:
+                "flex",
               justifyContent:
                 "space-between",
-
               alignItems:
-                "flex-end",
-
-              gap: 24,
-
-              marginBottom: 28,
-
-              flexWrap: "wrap",
+                "center",
+              gap: 18,
+              marginBottom: 15,
+              flexWrap:
+                "wrap",
             }}
           >
-            <div>
-              <div
-                style={{
-                  display:
-                    "flex",
-
-                  alignItems:
-                    "center",
-
-                  gap: 8,
-
-                  marginBottom: 9,
-
-                  color:
-                    COLORS.gold,
-
-                  fontSize: 10,
-
-                  fontWeight: 800,
-
-                  letterSpacing:
-                    "0.15em",
-                }}
-              >
-                <ActivityIcon
-                  size={14}
-                />
-
-                AUDIT & OBSERVABILITY
-              </div>
-
-
-              <h1
-                style={{
-                  margin: 0,
-
-                  color:
-                    COLORS.text,
-
-                  fontFamily:
-                    "Manrope, sans-serif",
-
-                  fontSize: 32,
-
-                  fontWeight: 650,
-
-                  letterSpacing:
-                    "-0.04em",
-                }}
-              >
-                Activity
-              </h1>
-
-
-              <p
-                style={{
-                  maxWidth: 650,
-
-                  margin:
-                    "9px 0 0",
-
-                  color:
-                    COLORS.muted,
-
-                  fontSize: 13,
-
-                  lineHeight: 1.65,
-                }}
-              >
-                Inspect the real backend
-                audit events produced by
-                each recovery workflow.
-              </p>
-            </div>
-
+            <p
+              style={{
+                maxWidth: 700,
+                margin: 0,
+                color:
+                  COLORS.muted,
+                fontSize: 12,
+                lineHeight: 1.65,
+              }}
+            >
+              Inspect the backend audit
+              evidence recorded for each
+              recovery workflow. This view
+              is read-only and does not
+              execute recovery actions.
+            </p>
 
             <div
               style={{
+                display:
+                  "inline-flex",
+                alignItems:
+                  "center",
+                gap: 7,
+                padding:
+                  "6px 9px",
+                borderRadius: 999,
+                border:
+                  `1px solid ${COLORS.border}`,
+                background:
+                  "rgba(255,255,255,0.018)",
                 color:
                   COLORS.subtle,
-
-                fontSize: 11,
+                fontSize: 9,
+                fontWeight: 800,
+                letterSpacing:
+                  "0.08em",
               }}
             >
-              Read-only audit view
+              <ShieldCheck
+                size={11}
+              />
+
+              READ-ONLY AUDIT
             </div>
           </div>
 
 
           {/* ================================================= */}
-          {/* CONTENT                                           */}
+          {/* SUMMARY STRIP                                     */}
+          {/* ================================================= */}
+
+          {!loadingTransactions &&
+            !error &&
+            transactions.length >
+              0 && (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(3, minmax(0, 1fr))",
+                  gap: 10,
+                  marginBottom: 16,
+                }}
+              >
+                <SummaryCard
+                  label="Recovery transactions"
+                  value={
+                    String(
+                      transactions.length,
+                    )
+                  }
+                />
+
+                <SummaryCard
+                  label="Selected transaction"
+                  value={
+                    selectedTransaction
+                      ?.id ??
+                    "—"
+                  }
+                />
+
+                <SummaryCard
+                  label="Recorded audit events"
+                  value={
+                    loadingAudit
+                      ? "…"
+                      : String(
+                          auditEvents.length,
+                        )
+                  }
+                  tone={
+                    auditError
+                      ? "error"
+                      : "neutral"
+                  }
+                />
+              </div>
+            )}
+
+
+          {/* ================================================= */}
+          {/* PAGE STATES / CONTENT                             */}
           {/* ================================================= */}
 
           {loadingTransactions ? (
-            <StatePanel>
-              Loading recovery
-              activity...
-            </StatePanel>
+            <div
+              className="activity-layout"
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "300px minmax(0, 1fr)",
+                gap: 18,
+                alignItems:
+                  "start",
+              }}
+            >
+              <PanelSkeleton />
+              <PanelSkeleton />
+            </div>
           ) : error ? (
-            <StatePanel>
-              {error}
-            </StatePanel>
+            <StatePanel
+              kind="error"
+              title="Unable to load activity"
+              description={
+                error
+              }
+              actionLabel="Retry"
+              onAction={() => {
+                void loadTransactions();
+              }}
+            />
+          ) : transactions.length ===
+            0 ? (
+            <StatePanel
+              kind="empty"
+              title="No recovery activity available"
+              description="Audit events will appear here after recovery workflows have been recorded."
+            />
           ) : (
             <div
               className="activity-layout"
               style={{
                 display: "grid",
-
                 gridTemplateColumns:
                   "300px minmax(0, 1fr)",
-
                 gap: 18,
-
                 alignItems:
                   "start",
               }}
             >
               {/* ============================================= */}
-              {/* TRANSACTION LIST                              */}
+              {/* TRANSACTION INDEX                             */}
               {/* ============================================= */}
 
               <div
                 style={{
                   borderRadius: 16,
-
                   border:
                     `1px solid ${COLORS.border}`,
-
                   background:
                     COLORS.surface,
-
                   overflow:
                     "hidden",
                 }}
@@ -603,24 +668,65 @@ export default function Activity() {
                 <div
                   style={{
                     padding: 15,
-
                     borderBottom:
                       `1px solid ${COLORS.borderSoft}`,
                   }}
                 >
                   <div
                     style={{
-                      color:
-                        COLORS.text,
-
-                      fontSize: 12,
-
-                      fontWeight: 700,
-
-                      marginBottom: 12,
+                      display: "flex",
+                      justifyContent:
+                        "space-between",
+                      alignItems:
+                        "center",
+                      gap: 10,
+                      marginBottom: 11,
                     }}
                   >
-                    Recovery Transactions
+                    <div>
+                      <div
+                        style={{
+                          color:
+                            COLORS.gold,
+                          fontSize: 9,
+                          fontWeight: 800,
+                          letterSpacing:
+                            "0.12em",
+                        }}
+                      >
+                        AUDIT INDEX
+                      </div>
+
+                      <div
+                        style={{
+                          marginTop: 4,
+                          color:
+                            COLORS.text,
+                          fontSize: 12,
+                          fontWeight: 700,
+                        }}
+                      >
+                        Recovery Transactions
+                      </div>
+                    </div>
+
+                    <span
+                      style={{
+                        padding:
+                          "4px 7px",
+                        borderRadius: 999,
+                        border:
+                          `1px solid ${COLORS.border}`,
+                        color:
+                          COLORS.subtle,
+                        fontSize: 9,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {
+                        transactions.length
+                      }
+                    </span>
                   </div>
 
 
@@ -635,19 +741,14 @@ export default function Activity() {
                       style={{
                         position:
                           "absolute",
-
                         top: "50%",
-
                         left: 11,
-
                         transform:
                           "translateY(-50%)",
-
                         color:
                           COLORS.subtle,
                       }}
                     />
-
 
                     <input
                       value={search}
@@ -662,29 +763,20 @@ export default function Activity() {
                       placeholder="Search transaction..."
                       style={{
                         width: "100%",
-
                         boxSizing:
                           "border-box",
-
                         height: 38,
-
                         padding:
                           "0 11px 0 34px",
-
                         borderRadius: 9,
-
                         border:
                           `1px solid ${COLORS.border}`,
-
                         outline:
                           "none",
-
                         background:
                           COLORS.elevated,
-
                         color:
                           COLORS.text,
-
                         fontSize: 11,
                       }}
                     />
@@ -696,19 +788,19 @@ export default function Activity() {
                 0 ? (
                   <div
                     style={{
-                      padding: 22,
-
-                      textAlign:
-                        "center",
-
-                      color:
-                        COLORS.subtle,
-
-                      fontSize: 10,
+                      padding: 14,
                     }}
                   >
-                    No matching
-                    transactions.
+                    <StatePanel
+                      kind="no-results"
+                      compact
+                      title="No matching transaction"
+                      description="Try another transaction ID, failure code, or status."
+                      actionLabel="Clear search"
+                      onAction={
+                        clearSearch
+                      }
+                    />
                   </div>
                 ) : (
                   filteredTransactions.map(
@@ -718,6 +810,13 @@ export default function Activity() {
                       const active =
                         transaction.id ===
                         selectedTransactionId;
+
+                      const blocked =
+                        normalizeStatus(
+                          transaction.status,
+                        ).includes(
+                          "block",
+                        );
 
                       return (
                         <button
@@ -733,24 +832,28 @@ export default function Activity() {
                           style={{
                             width:
                               "100%",
-
                             padding:
-                              "14px 15px",
-
+                              "13px 15px",
                             border:
                               "none",
-
                             borderBottom:
                               `1px solid ${COLORS.borderSoft}`,
-
+                            boxShadow:
+                              blocked
+                                ? "inset 2px 0 0 rgba(201,123,116,0.34)"
+                                : active
+                                  ? "inset 2px 0 0 rgba(229,220,199,0.25)"
+                                  : "none",
                             background:
                               active
-                                ? "rgba(229,220,199,0.045)"
-                                : "transparent",
-
+                                ? blocked
+                                  ? "rgba(201,123,116,0.055)"
+                                  : "rgba(229,220,199,0.045)"
+                                : blocked
+                                  ? "rgba(201,123,116,0.022)"
+                                  : "transparent",
                             textAlign:
                               "left",
-
                             cursor:
                               "pointer",
                           }}
@@ -759,10 +862,8 @@ export default function Activity() {
                             style={{
                               display:
                                 "flex",
-
                               justifyContent:
                                 "space-between",
-
                               gap: 12,
                             }}
                           >
@@ -770,7 +871,6 @@ export default function Activity() {
                               style={{
                                 color:
                                   COLORS.text,
-
                                 fontSize: 11,
                               }}
                             >
@@ -779,14 +879,11 @@ export default function Activity() {
                               }
                             </strong>
 
-
                             <span
                               style={{
                                 color:
                                   COLORS.accent,
-
                                 fontSize: 10,
-
                                 fontWeight: 700,
                               }}
                             >
@@ -800,10 +897,8 @@ export default function Activity() {
                           <div
                             style={{
                               marginTop: 6,
-
                               color:
                                 COLORS.muted,
-
                               fontSize: 9,
                             }}
                           >
@@ -817,27 +912,39 @@ export default function Activity() {
                             style={{
                               display:
                                 "flex",
-
                               justifyContent:
                                 "space-between",
-
+                              alignItems:
+                                "center",
                               gap: 10,
-
-                              marginTop: 5,
-
-                              color:
-                                COLORS.subtle,
-
-                              fontSize: 9,
+                              marginTop: 6,
                             }}
                           >
-                            <span>
+                            <span
+                              style={{
+                                color:
+                                  blocked
+                                    ? COLORS.error
+                                    : COLORS.subtle,
+                                fontSize: 9,
+                                fontWeight:
+                                  blocked
+                                    ? 700
+                                    : 500,
+                              }}
+                            >
                               {formatLabel(
                                 transaction.status,
                               )}
                             </span>
 
-                            <span>
+                            <span
+                              style={{
+                                color:
+                                  COLORS.subtle,
+                                fontSize: 9,
+                              }}
+                            >
                               Retry{" "}
                               {
                                 transaction.retry_count
@@ -853,7 +960,7 @@ export default function Activity() {
 
 
               {/* ============================================= */}
-              {/* AUDIT TRAIL                                   */}
+              {/* AUDIT LEDGER                                  */}
               {/* ============================================= */}
 
               <div
@@ -861,295 +968,468 @@ export default function Activity() {
                   minWidth: 0,
                 }}
               >
-                {selectedTransaction && (
-                  <div
-                    style={{
-                      display: "flex",
-
-                      justifyContent:
-                        "space-between",
-
-                      alignItems:
-                        "center",
-
-                      gap: 18,
-
-                      padding:
-                        "15px 17px",
-
-                      marginBottom: 12,
-
-                      borderRadius: 14,
-
-                      border:
-                        `1px solid ${COLORS.border}`,
-
-                      background:
-                        COLORS.surface,
-
-                      flexWrap:
-                        "wrap",
-                    }}
-                  >
-                    <div>
-                      <div
-                        style={{
-                          color:
-                            COLORS.subtle,
-
-                          fontSize: 9,
-
-                          fontWeight: 800,
-
-                          letterSpacing:
-                            "0.12em",
-                        }}
-                      >
-                        AUDIT TRAIL
-                      </div>
-
-
-                      <strong
-                        style={{
-                          display:
-                            "block",
-
-                          marginTop: 5,
-
-                          color:
-                            COLORS.text,
-
-                          fontSize: 14,
-                        }}
-                      >
-                        {
-                          selectedTransaction.id
-                        }
-                      </strong>
-                    </div>
-
+                {!selectedTransaction ? (
+                  <StatePanel
+                    kind="no-selection"
+                    title="Select a transaction"
+                    description="Choose a recovery transaction to inspect its recorded audit events."
+                  />
+                ) : (
+                  <>
+                    {/* SELECTED LEDGER CONTEXT */}
 
                     <div
                       style={{
-                        textAlign:
-                          "right",
+                        display: "flex",
+                        justifyContent:
+                          "space-between",
+                        alignItems:
+                          "center",
+                        gap: 18,
+                        padding:
+                          "14px 16px",
+                        marginBottom: 10,
+                        borderRadius: 14,
+                        border:
+                          selectedBlocked
+                            ? "1px solid rgba(201,123,116,0.16)"
+                            : `1px solid ${COLORS.border}`,
+                        background:
+                          selectedBlocked
+                            ? "rgba(201,123,116,0.025)"
+                            : COLORS.surface,
+                        flexWrap:
+                          "wrap",
+                      }}
+                    >
+                      <div>
+                        <div
+                          style={{
+                            display:
+                              "flex",
+                            alignItems:
+                              "center",
+                            gap: 7,
+                            color:
+                              selectedBlocked
+                                ? COLORS.error
+                                : COLORS.gold,
+                            fontSize: 9,
+                            fontWeight: 800,
+                            letterSpacing:
+                              "0.12em",
+                          }}
+                        >
+                          {selectedBlocked ? (
+                            <ShieldAlert
+                              size={11}
+                            />
+                          ) : (
+                            <ShieldCheck
+                              size={11}
+                            />
+                          )}
+
+                          RECOVERY AUDIT LEDGER
+                        </div>
+
+                        <strong
+                          style={{
+                            display:
+                              "block",
+                            marginTop: 5,
+                            color:
+                              COLORS.text,
+                            fontSize: 14,
+                          }}
+                        >
+                          {
+                            selectedTransaction.id
+                          }
+                        </strong>
+
+                        <div
+                          style={{
+                            marginTop: 4,
+                            color:
+                              COLORS.subtle,
+                            fontSize: 9,
+                          }}
+                        >
+                          {formatLabel(
+                            selectedTransaction.failure_code,
+                          )}{" "}
+                          · Retry{" "}
+                          {
+                            selectedTransaction.retry_count
+                          }
+                        </div>
+                      </div>
+
+
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems:
+                            "center",
+                          gap: 18,
+                          flexWrap:
+                            "wrap",
+                        }}
+                      >
+                        <div
+                          style={{
+                            textAlign:
+                              "right",
+                          }}
+                        >
+                          <div
+                            style={{
+                              color:
+                                COLORS.text,
+                              fontSize: 12,
+                              fontWeight: 700,
+                            }}
+                          >
+                            {formatRupees(
+                              selectedTransaction.amount,
+                            )}
+                          </div>
+
+                          <div
+                            style={{
+                              marginTop: 4,
+                              color:
+                                COLORS.subtle,
+                              fontSize: 9,
+                            }}
+                          >
+                            {formatLabel(
+                              selectedTransaction.status,
+                            )}
+                          </div>
+                        </div>
+
+                        <span
+                          style={{
+                            display:
+                              "inline-flex",
+                            alignItems:
+                              "center",
+                            gap: 5,
+                            padding:
+                              "5px 8px",
+                            borderRadius: 999,
+                            border:
+                              `1px solid ${COLORS.border}`,
+                            color:
+                              COLORS.subtle,
+                            fontSize: 8,
+                            fontWeight: 800,
+                            letterSpacing:
+                              "0.06em",
+                          }}
+                        >
+                          READ ONLY
+                        </span>
+                      </div>
+                    </div>
+
+
+                    {/* LEDGER BODY */}
+
+                    <div
+                      style={{
+                        borderRadius: 16,
+                        border:
+                          `1px solid ${COLORS.border}`,
+                        background:
+                          COLORS.surface,
+                        overflow:
+                          "hidden",
                       }}
                     >
                       <div
                         style={{
-                          color:
-                            COLORS.text,
-
-                          fontSize: 12,
-
-                          fontWeight: 700,
+                          display: "flex",
+                          justifyContent:
+                            "space-between",
+                          alignItems:
+                            "center",
+                          gap: 12,
+                          padding:
+                            "12px 16px",
+                          borderBottom:
+                            `1px solid ${COLORS.borderSoft}`,
+                          background:
+                            "rgba(255,255,255,0.014)",
+                          flexWrap:
+                            "wrap",
                         }}
                       >
-                        {formatRupees(
-                          selectedTransaction.amount,
-                        )}
-                      </div>
-
-
-                      <div
-                        style={{
-                          marginTop: 4,
-
-                          color:
-                            COLORS.subtle,
-
-                          fontSize: 9,
-                        }}
-                      >
-                        Retry{" "}
-                        {
-                          selectedTransaction.retry_count
-                        }
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-
-                <div
-                  style={{
-                    borderRadius: 16,
-
-                    border:
-                      `1px solid ${COLORS.border}`,
-
-                    background:
-                      COLORS.surface,
-
-                    overflow:
-                      "hidden",
-                  }}
-                >
-                  {loadingAudit ? (
-                    <StatePanelInline>
-                      Loading audit
-                      trail...
-                    </StatePanelInline>
-                  ) : auditError ? (
-                    <StatePanelInline>
-                      {auditError}
-                    </StatePanelInline>
-                  ) : auditEvents.length ===
-                    0 ? (
-                    <StatePanelInline>
-                      No recovery audit
-                      has been recorded
-                      for this transaction
-                      yet.
-                    </StatePanelInline>
-                  ) : (
-                    auditEvents.map(
-                      (
-                        event,
-                        index,
-                      ) => (
-                        <div
-                          key={`${event.step}-${event.timestamp}-${index}`}
-                          className="activity-audit-row"
-                          style={{
-                            display:
-                              "grid",
-
-                            gridTemplateColumns:
-                              "42px 110px 110px minmax(0,1fr) 150px",
-
-                            gap: 14,
-
-                            alignItems:
-                              "center",
-
-                            padding:
-                              "15px 17px",
-
-                            borderBottom:
-                              index ===
-                              auditEvents.length -
-                                1
-                                ? "none"
-                                : `1px solid ${COLORS.borderSoft}`,
-                          }}
-                        >
-                          {/* ICON */}
-
+                        <div>
                           <div
-                            style={{
-                              width: 30,
-
-                              height: 30,
-
-                              display:
-                                "grid",
-
-                              placeItems:
-                                "center",
-
-                              borderRadius: 9,
-
-                              border:
-                                `1px solid ${COLORS.border}`,
-
-                              background:
-                                COLORS.elevated,
-                            }}
-                          >
-                            <EventIcon
-                              event={
-                                event
-                              }
-                            />
-                          </div>
-
-
-                          {/* STEP */}
-
-                          <strong
                             style={{
                               color:
                                 COLORS.text,
-
-                              fontSize: 10,
-
-                              letterSpacing:
-                                "0.05em",
-                            }}
-                          >
-                            {
-                              event.step
-                            }
-                          </strong>
-
-
-                          {/* STATUS */}
-
-                          <span
-                            style={{
-                              color:
-                                getEventColor(
-                                  event,
-                                ),
-
-                              fontSize: 9,
-
-                              fontWeight: 800,
-                            }}
-                          >
-                            {formatLabel(
-                              event.status,
-                            ).toUpperCase()}
-                          </span>
-
-
-                          {/* MESSAGE */}
-
-                          <span
-                            style={{
-                              color:
-                                COLORS.muted,
-
                               fontSize: 11,
-
-                              lineHeight: 1.5,
-
-                              wordBreak:
-                                "break-word",
+                              fontWeight: 700,
                             }}
                           >
-                            {
-                              event.message
-                            }
-                          </span>
+                            Recorded recovery events
+                          </div>
 
+                          <div
+                            style={{
+                              marginTop: 3,
+                              color:
+                                COLORS.subtle,
+                              fontSize: 9,
+                            }}
+                          >
+                            Ordered backend audit trail
+                          </div>
+                        </div>
 
-                          {/* TIMESTAMP */}
-
+                        {!loadingAudit &&
+                          !auditError && (
                           <span
                             style={{
                               color:
                                 COLORS.subtle,
-
                               fontSize: 9,
-
-                              textAlign:
-                                "right",
-
-                              wordBreak:
-                                "break-word",
                             }}
                           >
                             {
-                              event.timestamp
-                            }
+                              auditEvents.length
+                            }{" "}
+                            events
                           </span>
+                        )}
+                      </div>
+
+
+                      {loadingAudit ? (
+                        <div
+                          style={{
+                            padding: 16,
+                          }}
+                        >
+                          <PanelSkeleton />
                         </div>
-                      ),
-                    )
-                  )}
-                </div>
+                      ) : auditError ? (
+                        <div
+                          style={{
+                            padding: 16,
+                          }}
+                        >
+                          <StatePanel
+                            kind="error"
+                            compact
+                            title="Unable to load audit trail"
+                            description={
+                              auditError
+                            }
+                            actionLabel="Retry"
+                            onAction={() => {
+                              if (
+                                selectedTransactionId
+                              ) {
+                                void loadAudit(
+                                  selectedTransactionId,
+                                );
+                              }
+                            }}
+                          />
+                        </div>
+                      ) : auditEvents.length ===
+                        0 ? (
+                        <div
+                          style={{
+                            padding: 16,
+                          }}
+                        >
+                          <StatePanel
+                            kind="empty"
+                            compact
+                            title="No audit events recorded"
+                            description="This transaction does not currently have a recovery audit trail."
+                          />
+                        </div>
+                      ) : (
+                        <div>
+                          {auditEvents.map(
+                            (
+                              event,
+                              index,
+                            ) => (
+                              <div
+                                key={`${event.step}-${event.timestamp}-${index}`}
+                                className="activity-audit-row"
+                                style={{
+                                  position:
+                                    "relative",
+                                  display:
+                                    "grid",
+                                  gridTemplateColumns:
+                                    "42px 105px 105px minmax(0,1fr) 150px",
+                                  gap: 14,
+                                  alignItems:
+                                    "center",
+                                  padding:
+                                    "15px 17px",
+                                  borderBottom:
+                                    index ===
+                                    auditEvents.length -
+                                      1
+                                      ? "none"
+                                      : `1px solid ${COLORS.borderSoft}`,
+                                }}
+                              >
+                                {/* TIMELINE CONNECTOR */}
+
+                                {index !==
+                                  auditEvents.length -
+                                    1 && (
+                                  <span
+                                    aria-hidden="true"
+                                    style={{
+                                      position:
+                                        "absolute",
+                                      left: 31,
+                                      top: 45,
+                                      bottom: -16,
+                                      width: 1,
+                                      background:
+                                        "rgba(229,220,199,0.075)",
+                                    }}
+                                  />
+                                )}
+
+
+                                {/* ICON */}
+
+                                <div
+                                  style={{
+                                    position:
+                                      "relative",
+                                    zIndex: 1,
+                                    width: 30,
+                                    height: 30,
+                                    display:
+                                      "grid",
+                                    placeItems:
+                                      "center",
+                                    borderRadius: 9,
+                                    border:
+                                      `1px solid ${COLORS.border}`,
+                                    background:
+                                      COLORS.elevated,
+                                  }}
+                                >
+                                  <EventIcon
+                                    event={
+                                      event
+                                    }
+                                  />
+                                </div>
+
+
+                                {/* STEP */}
+
+                                <strong
+                                  style={{
+                                    color:
+                                      COLORS.text,
+                                    fontSize: 10,
+                                    letterSpacing:
+                                      "0.05em",
+                                  }}
+                                >
+                                  {
+                                    event.step
+                                  }
+                                </strong>
+
+
+                                {/* STATUS */}
+
+                                <span
+                                  style={{
+                                    display:
+                                      "inline-flex",
+                                    width:
+                                      "fit-content",
+                                    padding:
+                                      "4px 7px",
+                                    borderRadius: 999,
+                                    border:
+                                      `1px solid ${getEventColor(
+                                        event,
+                                      )}26`,
+                                    background:
+                                      `${getEventColor(
+                                        event,
+                                      )}0D`,
+                                    color:
+                                      getEventColor(
+                                        event,
+                                      ),
+                                    fontSize: 8,
+                                    fontWeight: 800,
+                                    letterSpacing:
+                                      "0.05em",
+                                  }}
+                                >
+                                  {formatLabel(
+                                    event.status,
+                                  ).toUpperCase()}
+                                </span>
+
+
+                                {/* MESSAGE */}
+
+                                <span
+                                  style={{
+                                    color:
+                                      COLORS.muted,
+                                    fontSize: 11,
+                                    lineHeight: 1.5,
+                                    wordBreak:
+                                      "break-word",
+                                  }}
+                                >
+                                  {
+                                    event.message
+                                  }
+                                </span>
+
+
+                                {/* TIMESTAMP */}
+
+                                <span
+                                  style={{
+                                    color:
+                                      COLORS.subtle,
+                                    fontSize: 9,
+                                    textAlign:
+                                      "right",
+                                    wordBreak:
+                                      "break-word",
+                                  }}
+                                >
+                                  {
+                                    event.timestamp
+                                  }
+                                </span>
+                              </div>
+                            ),
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -1161,21 +1441,32 @@ export default function Activity() {
 
           <div
             style={{
+              display: "flex",
+              alignItems:
+                "flex-start",
+              gap: 8,
               marginTop: 14,
-
               color:
                 COLORS.subtle,
-
               fontSize: 10,
-
               lineHeight: 1.6,
             }}
           >
-            Activity is read-only.
-            Opening this page or
-            selecting a transaction
-            does not trigger recovery
-            execution.
+            <ShieldCheck
+              size={12}
+              style={{
+                marginTop: 2,
+                flexShrink: 0,
+              }}
+            />
+
+            <span>
+              Activity is read-only.
+              Opening this page or
+              selecting a transaction does
+              not trigger recovery
+              execution.
+            </span>
           </div>
         </section>
       </main>
@@ -1185,68 +1476,78 @@ export default function Activity() {
 
 
 // =========================================================
-// STATE PANEL
+// SUMMARY CARD
 // =========================================================
 
-function StatePanel({
-  children,
+function SummaryCard({
+  label,
+  value,
+  tone = "neutral",
 }: {
-  children:
-    React.ReactNode;
+  label: string;
+  value: string;
+  tone?:
+    | "neutral"
+    | "error";
 }) {
+  const valueColor =
+    tone === "error"
+      ? COLORS.error
+      : COLORS.accent;
+
+  const border =
+    tone === "error"
+      ? "rgba(201,123,116,0.15)"
+      : COLORS.border;
+
+  const background =
+    tone === "error"
+      ? "rgba(201,123,116,0.03)"
+      : "rgba(255,255,255,0.018)";
+
   return (
     <div
       style={{
-        padding: 42,
-
-        borderRadius: 16,
-
+        minHeight: 58,
+        display: "flex",
+        alignItems:
+          "center",
+        justifyContent:
+          "space-between",
+        gap: 12,
+        padding:
+          "10px 13px",
+        borderRadius: 12,
         border:
-          `1px solid ${COLORS.border}`,
-
-        background:
-          COLORS.surface,
-
-        color:
-          COLORS.muted,
-
-        textAlign:
-          "center",
-
-        fontSize: 12,
+          `1px solid ${border}`,
+        background,
       }}
     >
-      {children}
-    </div>
-  );
-}
+      <span
+        style={{
+          color:
+            COLORS.subtle,
+          fontSize: 9,
+          fontWeight: 700,
+          letterSpacing:
+            "0.04em",
+          textTransform:
+            "uppercase",
+        }}
+      >
+        {label}
+      </span>
 
-
-// =========================================================
-// INLINE STATE
-// =========================================================
-
-function StatePanelInline({
-  children,
-}: {
-  children:
-    React.ReactNode;
-}) {
-  return (
-    <div
-      style={{
-        padding: 36,
-
-        color:
-          COLORS.muted,
-
-        textAlign:
-          "center",
-
-        fontSize: 11,
-      }}
-    >
-      {children}
+      <strong
+        style={{
+          color:
+            valueColor,
+          fontSize: 15,
+          fontWeight: 650,
+        }}
+      >
+        {value}
+      </strong>
     </div>
   );
 }

@@ -3,14 +3,9 @@ import type {
   AIReasoningResponse,
 } from "../types/ai";
 
-
-// =========================================================
-// API CONFIGURATION
-// =========================================================
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ??
-  "http://127.0.0.1:8000";
+import {
+  authenticatedFetch,
+} from "./authFetch";
 
 
 // =========================================================
@@ -105,10 +100,13 @@ async function parseResponse<T>(
  *
  * POST /api/ai/reasoning
  *
+ * Authentication:
+ *
+ * A valid Supabase session is required.
+ *
  * IMPORTANT:
  *
- * This function is READ-ONLY from the frontend's
- * perspective.
+ * This function remains explanation-only.
  *
  * Calling it does NOT:
  *
@@ -119,30 +117,29 @@ async function parseResponse<T>(
  * - verify payment
  * - change guardrails
  * - mark revenue recovered
- *
- * It only requests operator-facing reasoning.
  */
 export async function getAIReasoning(
   request: AIReasoningRequest,
 ): Promise<AIReasoningResponse> {
-  const response = await fetch(
-    `${API_BASE_URL}/api/ai/reasoning`,
-    {
-      method: "POST",
+  const response =
+    await authenticatedFetch(
+      "/api/ai/reasoning",
+      {
+        method: "POST",
 
-      headers: {
-        "Content-Type":
-          "application/json",
+        headers: {
+          Accept:
+            "application/json",
 
-        Accept:
-          "application/json",
+          "Content-Type":
+            "application/json",
+        },
+
+        body: JSON.stringify(
+          request,
+        ),
       },
-
-      body: JSON.stringify(
-        request,
-      ),
-    },
-  );
+    );
 
   return parseResponse<AIReasoningResponse>(
     response,

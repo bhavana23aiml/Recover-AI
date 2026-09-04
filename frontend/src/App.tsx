@@ -10,34 +10,73 @@ import RecoveryAgent from "./pages/RecoveryAgent";
 import Activity from "./pages/Activity";
 import Guardrails from "./pages/Guardrails";
 import Settings from "./pages/Settings";
+import Signup from "./pages/Signup";
+import Login from "./pages/Login";
+
+import ProtectedRoute from "./components/auth/ProtectedRoute";
+
+
 export default function App() {
   return (
     <Routes>
+
+      {/* =============================== */}
+      {/* PUBLIC AUTH ROUTES              */}
+      {/* =============================== */}
+
       <Route
-        path="/"
-        element={<Dashboard />}
+        path="/signup"
+        element={<Signup />}
       />
 
       <Route
-  path="/transactions"
-  element={<Transactions />}
-/>
-      <Route
-  path="/recovery-agent"
-  element={<RecoveryAgent />}
-/>
-<Route
-  path="/activity"
-  element={<Activity />}
-/>
-<Route
-  path="/guardrails"
-  element={<Guardrails />}
-/>
-<Route
-  path="/settings"
-  element={<Settings />}
-/>
+        path="/login"
+        element={<Login />}
+      />
+
+
+      {/* =============================== */}
+      {/* PROTECTED RECOVERAI ROUTES      */}
+      {/* =============================== */}
+
+      <Route element={<ProtectedRoute />}>
+
+        <Route
+          path="/"
+          element={<Dashboard />}
+        />
+
+        <Route
+          path="/transactions"
+          element={<Transactions />}
+        />
+
+        <Route
+          path="/recovery-agent"
+          element={<RecoveryAgent />}
+        />
+
+        <Route
+          path="/activity"
+          element={<Activity />}
+        />
+
+        <Route
+          path="/guardrails"
+          element={<Guardrails />}
+        />
+
+        <Route
+          path="/settings"
+          element={<Settings />}
+        />
+
+      </Route>
+
+
+      {/* =============================== */}
+      {/* FALLBACK                        */}
+      {/* =============================== */}
 
       <Route
         path="*"
@@ -48,6 +87,7 @@ export default function App() {
           />
         }
       />
+
     </Routes>
   );
 }

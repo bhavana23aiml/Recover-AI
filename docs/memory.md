@@ -1,10 +1,14 @@
 # RecoverAI — Project Memory
 
 **Project:** RecoverAI — Intelligent AI-Powered Revenue Recovery Agent  
+
 **Track:** AI Revenue Recovery  
+
 **Document:** Implementation Memory / Resume State  
+
 **Status:** ACTIVE  
-**Last Updated:** 2026-08-23
+
+**Last Updated:** 2026-09-04
 
 ---
 
@@ -15,21 +19,33 @@ This file records the observed state of the RecoverAI repository.
 It is intended to answer:
 
 ```text
+
 What is actually implemented?
+
 What has actually been tested?
+
 What is currently broken?
+
 What is the next task?
+
 What should not be started yet?
+
 ```
 
 This file is not the canonical owner of:
 
 ```text
+
 Product requirements
+
 Architecture rules
+
 Design rules
+
 Guardrail configuration
+
 Build priorities
+
 ```
 
 Those belong to the higher-authority documents.
@@ -39,49 +55,73 @@ Those belong to the higher-authority documents.
 # 2. QUICK RESUME
 
 ```text
-Date of last session:
-2026-08-23
+Date of last verified implementation state:
+2026-09-04
 
 Current phase:
-Final P0 verification — Agent Replay
+Documentation drift closure
+→ then authenticated browser E2E
+→ then deployment/demo freeze
 
 Last confirmed working:
+
 - Failure Classifier
 - Recovery Engine
 - Guardrail Engine
 - Recovery Executor
+- Deterministic simulation
 - Verification
-- In-memory Audit Trail
-- In-process Idempotency
-- Execute API
-- Audit API
-- Decision Drawer
-- Agent Replay implementation
-- Dashboard ↔ recovery execution integration
-- Simulation/demo labels
+- Audit API / Agent Replay contract
+- Supabase/PostgreSQL gateway/recovery persistence
+- Persistent gateway-linked idempotency
+- AI reasoning layer
+- Deterministic AI fallback
+- GroqCloud provider integration
+- Razorpay Test Mode recovery-order flow
+- Razorpay payment verification
+- Razorpay payment reconciliation
+- Signed Razorpay webhook
+- payment.captured synchronization
+- Supabase browser authentication
+- Protected frontend routing
+- Protected browser-facing backend APIs
 - Frontend production build
-- 12/12 backend automated tests
+- 47 backend tests passing / 0 failed
 
-Current verification pending:
-- Successful Agent Replay UI reaches VERIFY
-- Blocked Agent Replay UI stops at GUARDRAIL
+Current verification / release work:
 
-Immediate goal:
-Verify RX18492 and RX20117 in the frontend.
-Then mark P0 complete.
+- Finish memory.md drift alignment
+- Re-run backend regression suite
+- Re-run frontend production build
+- Login through Supabase Auth
+- Verify protected dashboard request succeeds
+- Verify RX18492 allowed flow
+- Verify AI explanation
+- Verify Agent Replay reaches VERIFY
+- Verify RX20117 stops at GUARDRAIL — BLOCKED
+- Verify no EXECUTE / VERIFY for blocked attempt
+- Verify logout + protected-route redirect
+- Review production CORS / environment configuration
+- Deploy and smoke-test
+- Freeze demo/submission claims
 
-Do NOT start yet:
-- Supabase
-- Razorpay Test Mode
-- Razorpay Webhooks
-- AI Reasoner
-- Extra dashboard polish
+Do NOT claim:
+
+- Multi-merchant tenant isolation
+- Merchant-level authorization
+- Cross-merchant data isolation
+- Production Razorpay processing
+- Production merchant revenue recovered
+- SSE-driven live activity
+- Production multi-worker correctness
+- Production readiness before deployment smoke testing
 ```
 
-For canonical P0 progress, read:
+For canonical current phase state, read:
 
 ```text
-docs/phases.md §32
+docs/phases.md §34
+docs/phases.md §35
 ```
 
 ---
@@ -91,19 +131,33 @@ docs/phases.md §32
 Use this authority order:
 
 ```text
+
 rules.md
+
     ↓
+
 architecture.md
+
     ↓
+
 PRD.md
+
     ↓
+
 design.md
+
     ↓
+
 project-overview.md
+
     ↓
+
 phases.md
+
     ↓
+
 memory.md
+
 ```
 
 This file records repository observations.
@@ -116,122 +170,150 @@ If memory contains newer repository observations than `phases.md`, update the cu
 
 # 4. Local Project Path
 
-Current development machine path:
+Current development machine:
 
 ```text
-C:\Users\DELL\recoverai
+macOS
 ```
 
-Current platform:
+Observed project path:
 
 ```text
-Windows
+~/Recover-AI
 ```
 
 Development tools observed:
 
 ```text
 VS Code
-Command Prompt / VS Code terminal
+zsh / macOS Terminal
+Python virtual environment
+npm / Vite
+Git / GitHub CLI
 ```
 
-Path portability rule appears later in this file.
+Older Windows paths later in historical notes are not current resume commands.
 
 ---
 
 # 5. Current Top-Level Project Structure
 
-Observed project areas:
+Observed/current project areas include:
 
 ```text
-recoverai/
+Recover-AI/
 ├── backend/
 ├── frontend/
 ├── docs/
-├── node_modules/
-├── routers/
-├── services/
-├── package.json
-└── package-lock.json
+├── ai/
+├── database/
+├── scripts/
+├── README.md
+└── project configuration / Git files
 ```
 
-The `/docs` directory is currently being reconstructed because the finalized documentation existed in conversation history but was not physically present in the repository.
+The documentation set is physically being aligned to the current implementation in this order:
+
+```text
+rules.md
+architecture.md
+PRD.md
+design.md
+project-overview.md
+phases.md
+memory.md
+```
+
+This memory update is the final document in that authority-order drift pass.
 
 ---
 
 # 6. Backend Technology
 
-Observed backend stack:
+Observed/current backend stack:
 
 ```text
-Python
+Python 3.12.14
 FastAPI
 Pydantic
 Uvicorn
 pytest
+Supabase Python client
+Razorpay integration
+GroqCloud-compatible AI provider integration
 ```
 
-Observed Python version during tests:
+The current verified test baseline is recorded in Section 33.
 
-```text
-Python 3.14.3
-```
-
-Observed pytest version:
-
-```text
-pytest 9.1.1
-```
+Older Python/pytest version observations from the original Windows development checkpoint are historical, not the current environment.
 
 ---
 
 # 7. Backend Path
 
 ```text
-C:\Users\DELL\recoverai\backend
+~/Recover-AI/backend
 ```
 
 Virtual environment:
 
 ```text
-backend\venv
+backend/venv
 ```
 
-Activation command:
+Activation:
 
-```bat
-venv\Scripts\activate
+```bash
+cd ~/Recover-AI/backend
+source venv/bin/activate
+```
+
+Backend start:
+
+```bash
+python -m uvicorn main:app --reload
 ```
 
 ---
 
 # 8. Backend Service Structure
 
-Observed service files include:
+Observed implemented backend service areas include:
 
 ```text
 backend/services/
-├── __init__.py
-├── failure_classifier.py
-├── recovery_engine.py
-├── guardrail_engine.py
-├── recovery_executor.py
-├── ai_reasoner.py
-└── razorpay_service.py
+
+failure_classifier.py
+recovery_engine.py
+guardrail_engine.py
+recovery_executor.py
+ai_reasoner.py
+razorpay_service.py
 ```
 
-Observed state:
+Observed current state:
 
 ```text
-failure_classifier.py     implemented
-recovery_engine.py        implemented
-guardrail_engine.py       implemented
-recovery_executor.py      implemented
-ai_reasoner.py            placeholder / not implemented
-razorpay_service.py       placeholder / not implemented
+failure_classifier.py     implemented ✅
+recovery_engine.py        implemented ✅
+guardrail_engine.py       implemented ✅
+recovery_executor.py      implemented ✅
+ai_reasoner.py            implemented ✅
+razorpay_service.py       implemented ✅
 ```
 
-Do not infer completion from file existence alone.
+Additional implemented backend concerns include:
+
+```text
+Supabase persistence
+Supabase user-token validation
+AI provider dispatch / fallback
+Razorpay verification / reconciliation
+Razorpay webhook signature verification
+persistent gateway/recovery idempotency
+```
+
+Do not infer completion from file existence alone; the status above reflects verified implementation/testing checkpoints.
 
 ---
 
@@ -240,17 +322,29 @@ Do not infer completion from file existence alone.
 Observed working dependency chain:
 
 ```text
+
 schemas
+
    ↓
+
 failure_classifier
+
    ↓
+
 recovery_engine
+
    ↓
+
 guardrail_engine
+
    ↓
+
 recovery_executor
+
    ↓
+
 main API
+
 ```
 
 The previous circular import in `recovery_engine.py` was removed.
@@ -262,22 +356,31 @@ The previous circular import in `recovery_engine.py` was removed.
 Earlier error:
 
 ```text
+
 ImportError:
+
 cannot import name 'create_recovery_decision'
+
 from partially initialized module
+
 'services.recovery_engine'
+
 ```
 
 Root cause:
 
 ```python
+
 from services.recovery_engine import create_recovery_decision
+
 ```
 
 was incorrectly present inside:
 
 ```text
+
 services/recovery_engine.py
+
 ```
 
 That self-import was removed.
@@ -291,20 +394,27 @@ Current import verification passes.
 Observed state:
 
 ```text
+
 IMPLEMENTED ✅
+
 IMPORT VERIFIED ✅
+
 ```
 
 Verification command:
 
 ```bat
+
 python -c "from services.failure_classifier import classify_failure; print('1. Classifier OK')"
+
 ```
 
 Observed output:
 
 ```text
+
 1. Classifier OK
+
 ```
 
 Canonical classifier behavior belongs to the PRD / architecture / implementation.
@@ -318,20 +428,27 @@ Do not duplicate the full rule table here.
 Observed state:
 
 ```text
+
 IMPLEMENTED ✅
+
 IMPORT VERIFIED ✅
+
 ```
 
 Verification command:
 
 ```bat
+
 python -c "from services.recovery_engine import create_recovery_decision; print('2. Recovery Engine OK')"
+
 ```
 
 Observed output:
 
 ```text
+
 2. Recovery Engine OK
+
 ```
 
 The Recovery Engine no longer imports itself or the Guardrail Engine.
@@ -343,21 +460,29 @@ The Recovery Engine no longer imports itself or the Guardrail Engine.
 Observed state:
 
 ```text
+
 IMPLEMENTED ✅
+
 IMPORT VERIFIED ✅
+
 CORE P0 TESTS PASS ✅
+
 ```
 
 Verification:
 
 ```bat
+
 python -c "from services.guardrail_engine import evaluate_guardrails; print('3. Guardrail OK')"
+
 ```
 
 Observed:
 
 ```text
+
 3. Guardrail OK
+
 ```
 
 Guardrail configuration is not owned by this memory file.
@@ -365,8 +490,11 @@ Guardrail configuration is not owned by this memory file.
 Read:
 
 ```text
+
 backend/core/config.py
+
 docs/rules.md
+
 ```
 
 for canonical values.
@@ -378,7 +506,9 @@ for canonical values.
 Observed implementation imports safety configuration from:
 
 ```text
+
 backend/core/config.py
+
 ```
 
 `core.config` was successfully imported during development.
@@ -386,7 +516,9 @@ backend/core/config.py
 Per project rules:
 
 ```text
+
 backend/core/config.py
+
 ```
 
 is the binding runtime source for configured safety thresholds.
@@ -400,22 +532,31 @@ If service code and config disagree, treat it as a bug unless an explicit docume
 Observed state:
 
 ```text
+
 IMPLEMENTED ✅
+
 IMPORT VERIFIED ✅
+
 SERVICE TESTS PASS ✅
+
 API TESTS PASS ✅
+
 ```
 
 Current file:
 
 ```text
+
 backend/services/recovery_executor.py
+
 ```
 
 Observed file exists and contains:
 
 ```python
+
 def execute_recovery(...)
+
 ```
 
 ---
@@ -425,21 +566,37 @@ def execute_recovery(...)
 Observed executor implements:
 
 ```text
+
 IDEMPOTENCY
+
       ↓
+
 DETECT
+
       ↓
+
 CLASSIFY
+
       ↓
+
 DECIDE
+
       ↓
+
 GUARDRAIL
+
       ↓
+
 EXECUTE / SIMULATE
+
       ↓
+
 VERIFY
+
       ↓
+
 AUDIT
+
 ```
 
 Guardrail evaluation is called once for the execution attempt.
@@ -448,19 +605,26 @@ The already-generated recovery decision is passed to the Guardrail Engine.
 
 ---
 
-# 17. Simulation Mode
+# 17. Current Execution Environments
 
-Current execution is:
+RecoverAI currently demonstrates two non-production execution contexts:
 
 ```text
 SIMULATION
+RAZORPAY_TEST
 ```
 
-The current executor contains deterministic simulation behavior.
+`SIMULATION` is the deterministic recovery-demo execution path.
 
-Simulation results are visibly labeled in the frontend.
+`RAZORPAY_TEST` is the integrated Razorpay Test Mode path.
 
-Simulation values must not be represented as actual merchant revenue.
+Both must remain visibly labeled.
+
+Neither may be represented as production merchant payment processing.
+
+A simulation result is not real merchant revenue.
+
+A verified Razorpay Test Mode payment proves the test gateway integration, not production revenue recovery.
 
 ---
 
@@ -471,11 +635,17 @@ Observed executor uses a deterministic hash-based approach.
 Meaning:
 
 ```text
+
 same transaction inputs
+
       ↓
+
 same simulation calculation
+
       ↓
+
 stable demo behavior
+
 ```
 
 This avoids random Buildathon demos producing different outcomes unexpectedly.
@@ -484,23 +654,26 @@ Simulation assumptions are implementation/demo behavior and are not validated me
 
 ---
 
-# 19. Current Audit Storage
+# 19. Current Audit / Recovery Persistence
 
-Observed audit persistence:
+Current gateway/recovery-linked persistence uses:
 
 ```text
-in-memory Python AUDIT_STORE
+Supabase
+PostgreSQL
 ```
 
-Current audit endpoint:
+The persistent path covers recovery/gateway state, idempotency, verification/reconciliation state, and audit-related persistence used around the Razorpay Test Mode integration.
+
+The stable frontend audit endpoint remains:
 
 ```text
 GET /api/recovery/audit/{transaction_id}
 ```
 
-Current audit data disappears after backend restart.
+Controlled in-memory audit state may still exist in deterministic simulation/tests.
 
-This limitation is expected until persistent storage is implemented.
+Do not describe process-local simulation storage as the durability mechanism for gateway-linked financial state.
 
 ---
 
@@ -509,62 +682,79 @@ This limitation is expected until persistent storage is implemented.
 Observed successful recovery audit:
 
 ```text
+
 DETECT
+
 CLASSIFY
+
 DECIDE
+
 GUARDRAIL
+
 EXECUTE
+
 VERIFY
+
 ```
 
 Observed blocked recovery audit:
 
 ```text
+
 DETECT
+
 CLASSIFY
+
 DECIDE
+
 GUARDRAIL
+
 ```
 
 For blocked workflows:
 
 ```text
+
 EXECUTE absent ✅
+
 VERIFY absent ✅
+
 ```
 
 ---
 
 # 21. Idempotency
 
-Observed state:
+Observed current state:
 
 ```text
-IN-PROCESS IDEMPOTENCY IMPLEMENTED ✅
-AUTOMATED TEST PASS ✅
+Deterministic duplicate protection              ✅
+Automated regression coverage                   ✅
+Persistent gateway/recovery idempotency path    ✅
+Supabase/PostgreSQL durable state               ✅
 ```
 
-The executor currently has in-memory idempotency state/result storage.
+For gateway-linked execution, the durable idempotency/recovery state is reserved before external execution.
 
-Duplicate identical recovery requests in the same backend process return the existing result instead of executing the workflow again.
+Repeated verification/reconciliation or duplicate delivery must not create another payment attempt merely because the request is repeated.
+
+Process-local idempotency may remain in deterministic tests/simulation.
 
 ---
 
 # 22. Idempotency Limitation
 
-Current idempotency is not durable.
+Persistent idempotency materially improves crash/restart safety for the gateway-linked path.
 
-Backend restart causes in-memory state to be lost.
+However, RecoverAI must still **not** claim full production multi-worker financial correctness without dedicated concurrency/load testing.
 
-Therefore current implementation must not be described as:
+Distinguish:
 
 ```text
-persistent idempotency
-crash-safe idempotency
-production financial idempotency
-```
+persistent gateway-linked idempotency     implemented
 
-Persistent storage must be added before relying on real external financial execution.
+full production distributed concurrency   not proven
+```
 
 ---
 
@@ -573,44 +763,63 @@ Persistent storage must be added before relying on real external financial execu
 Observed and verified through service/API/UI work:
 
 ```text
+
 Transaction:
+
 RX18492
 
 Amount:
+
 ₹7,499
 
 Failure:
+
 BANK_UNAVAILABLE
 
 Retry Count:
+
 0
+
 ```
 
 Observed outcome:
 
 ```text
+
 Guardrail:
+
 ALLOWED
 
 Execution:
+
 RECOVERED
 
 Recovered Amount:
+
 ₹7,499
 
 Execution Mode:
+
 SIMULATION
+
 ```
 
 Observed audit:
 
 ```text
+
 DETECT
+
 CLASSIFY
+
 DECIDE
+
 GUARDRAIL
+
 EXECUTE
+
 VERIFY
+
 ```
 
 ---
@@ -620,138 +829,167 @@ VERIFY
 Observed and verified through service/API tests:
 
 ```text
+
 Transaction:
+
 RX20117
 
 Amount:
+
 ₹68,000
 
 Failure:
+
 BANK_UNAVAILABLE
 
 Retry Count:
+
 2
+
 ```
 
 Observed outcome:
 
 ```text
+
 Guardrail:
+
 BLOCKED
 
 can_execute:
+
 false
 
 Execution:
+
 BLOCKED
 
 Recovered Amount:
+
 0
+
 ```
 
 Observed audit:
 
 ```text
+
 DETECT
+
 CLASSIFY
+
 DECIDE
+
 GUARDRAIL
+
 ```
 
 No execution or verification events were produced.
 
 ---
 
-# 25. Swagger Verification
+# 25. Historical Swagger Verification
 
-The following was manually verified through FastAPI Swagger.
+The August 23 deterministic P0 checkpoint was manually verified through FastAPI Swagger before the later browser-authentication boundary was added.
 
-Successful execution:
+Historical successful case:
 
 ```text
 POST /api/recovery/execute
-HTTP 200
 RX18492
-ALLOWED
-RECOVERED
+GUARDRAIL → ALLOWED
+SIMULATION → RECOVERED
 ```
 
-Blocked execution:
+Historical blocked case:
 
 ```text
 POST /api/recovery/execute
-HTTP 200
 RX20117
-BLOCKED
+GUARDRAIL → BLOCKED
 ```
 
-Audit retrieval was separately verified.
+These observations remain useful history.
+
+Current protected browser-facing endpoints now require authentication.
 
 ---
 
-# 26. Successful Audit API Verification
+# 26. Historical Successful Audit API Verification
 
-Observed request:
+The earlier deterministic checkpoint manually verified:
 
 ```text
 GET /api/recovery/audit/RX18492
 ```
 
-Observed HTTP response:
+and received the real backend audit sequence for the executed simulation.
 
-```text
-200
-```
-
-Observed audit included actual backend events.
+Current audit access is now within the authenticated browser API boundary.
 
 ---
 
-# 27. Blocked Audit API Verification
+# 27. Historical Blocked Audit API Verification
 
-Observed request:
-
-```text
-GET /api/recovery/audit/RX20117
-```
-
-Observed HTTP response:
+The earlier deterministic checkpoint manually verified the blocked audit:
 
 ```text
-200
-```
+RX20117
 
-Observed events:
-
-```text
 DETECT
 CLASSIFY
 DECIDE
 GUARDRAIL — BLOCKED
 ```
 
-This manually proved that blocked workflows do not generate fake execution stages.
+No `EXECUTE` or `VERIFY` event was produced.
+
+That safety property remains part of current regression coverage.
 
 ---
 
 # 28. Backend API
 
-Current `main.py` exposes:
+Current public application/system endpoints:
 
 ```text
-GET  /
-GET  /health
-GET  /api/dashboard
+GET /
+GET /health
+```
 
+Current protected browser-facing endpoints:
+
+```text
+GET  /api/dashboard
 POST /api/classify-failure
+
 POST /api/recovery/decide
 POST /api/recovery/guardrails
 POST /api/recovery/execute
-
 GET  /api/recovery/audit/{transaction_id}
+
+POST /api/ai/reasoning
+
+POST /api/razorpay/recovery-order
+POST /api/razorpay/verify-payment
+POST /api/razorpay/reconcile-payment
 ```
 
-Webhook API is not implemented yet.
+Protected browser requests use a Supabase access token:
+
+```text
+Authorization: Bearer <token>
+```
+
+The backend validates the authenticated user through `get_current_user`.
+
+Razorpay webhook endpoint:
+
+```text
+POST /api/razorpay/webhook
+```
+
+The webhook uses Razorpay signature authentication and must not require a Supabase browser-user JWT.
 
 ---
 
@@ -763,9 +1001,28 @@ Current endpoint:
 GET /api/dashboard
 ```
 
-Current dashboard response is demo data.
+Current security state:
 
-The UI explicitly labels the environment accordingly.
+```text
+AUTHENTICATION REQUIRED ✅
+```
+
+The response still contains demo/sample dashboard data.
+
+The UI must not present those values as measured merchant production performance.
+
+Canonical current metric examples include:
+
+```text
+Revenue at Risk      ₹2,48,400
+Revenue Recovered    ₹1,71,920
+Recovery Rate        69.2%
+Active Recoveries    47
+Failed Payments      84
+Recovered Today      ₹31,900
+```
+
+These are demo values unless/until replaced by calculated verified persisted metrics.
 
 ---
 
@@ -774,10 +1031,15 @@ The UI explicitly labels the environment accordingly.
 Observed backend dashboard currently returns:
 
 ```text
+
 RX18492
+
 RX18493
+
 RX18494
+
 RX20117
+
 ```
 
 Machine-readable fields were added so React does not infer financial logic from display strings.
@@ -785,13 +1047,21 @@ Machine-readable fields were added so React does not infer financial logic from 
 Current transaction payload includes:
 
 ```text
+
 id
+
 amount
+
 failure_reason
+
 failure_code
+
 retry_count
+
 agent_action
+
 status
+
 ```
 
 ---
@@ -801,9 +1071,13 @@ status
 The frontend must not perform mappings such as:
 
 ```text
+
 "Bank unavailable"
+
       ↓
+
 BANK_UNAVAILABLE
+
 ```
 
 for recovery safety logic.
@@ -811,8 +1085,11 @@ for recovery safety logic.
 Backend supplies the machine-readable:
 
 ```text
+
 failure_code
+
 retry_count
+
 ```
 
 which React forwards to the recovery API.
@@ -821,74 +1098,73 @@ which React forwards to the recovery API.
 
 # 32. Backend Automated Tests
 
-Current test files:
+Current test suite includes coverage across files such as:
 
 ```text
 backend/tests/test_recovery_flow.py
 backend/tests/test_recovery_api.py
+backend/tests/test_ai_reasoner.py
+backend/tests/test_ai_api.py
+backend/tests/test_razorpay_api.py
+backend/tests/test_auth_api.py
 ```
+
+The suite includes deterministic recovery, AI, Razorpay, and authentication coverage.
 
 ---
 
 # 33. Backend Test Result
 
-Verified on:
+Latest verified on 2026-09-04:
 
 ```text
-2026-08-23
+47 passed
+0 failed
+2 non-blocking Supabase client deprecation warnings
 ```
 
-Command:
+Preferred command from the backend virtual environment:
 
-```bat
-python -m pytest tests -v
+```bash
+python -m pytest -q
 ```
 
-Observed result:
-
-```text
-12 passed
-```
-
-Observed runtime:
-
-```text
-12 passed in 0.42s
-```
+The two warnings are Supabase sync-client deprecation warnings and were non-blocking at the verified checkpoint.
 
 ---
 
-# 34. Recovery Flow Test Coverage
+# 34. Recovery / Integration Test Coverage
 
-Observed service tests cover:
+Current regression coverage includes:
 
 ```text
 successful recovery
-maximum retry blocking
-blocked recovery stops before execution
-idempotent duplicate request
-high-value manual review
-unknown-failure manual review
+maximum-retry blocking
+blocked flow stops before execution
+duplicate/idempotent request behavior
+high-value safety behavior
+unknown-failure handling
+execute API
+audit API
+input validation
+AI reasoning and deterministic fallback
+Razorpay recovery-order behavior
+Razorpay payment verification
+Razorpay reconciliation
+webhook behavior
 ```
-
-All passed in the latest run.
 
 ---
 
-# 35. API Test Coverage
+# 35. Authentication Test Coverage
 
-Observed API tests cover:
+Current authentication tests verify anonymous access is rejected from protected browser-facing APIs.
 
-```text
-successful execute endpoint
-audit endpoint
-blocked execution endpoint
-API idempotency
-high-value manual review
-invalid amount validation
-```
+Protected areas tested include the recovery/dashboard/AI boundary and the three Razorpay browser APIs.
 
-All passed in the latest run.
+Razorpay business tests use a deterministic authenticated-user dependency override so gateway behavior can be tested without a live Supabase login.
+
+The Razorpay webhook is different: it uses Razorpay signature authentication rather than browser-user authentication.
 
 ---
 
@@ -899,9 +1175,13 @@ FastAPI/Starlette `TestClient` required an additional dependency in the current 
 Observed earlier collection error:
 
 ```text
+
 RuntimeError:
+
 The starlette.testclient module requires
+
 the httpx2 package to be installed.
+
 ```
 
 After installing the required dependency, the API tests executed successfully.
@@ -913,6 +1193,7 @@ After installing the required dependency, the API tests executed successfully.
 Latest verified commands:
 
 ```bat
+
 python -c "from services.failure_classifier import classify_failure; print('1. Classifier OK')"
 
 python -c "from services.recovery_engine import create_recovery_decision; print('2. Recovery Engine OK')"
@@ -922,16 +1203,23 @@ python -c "from services.guardrail_engine import evaluate_guardrails; print('3. 
 python -c "from services.recovery_executor import execute_recovery; print('4. Executor OK')"
 
 python -c "import main; print('5. Main API OK')"
+
 ```
 
 Observed output:
 
 ```text
+
 1. Classifier OK
+
 2. Recovery Engine OK
+
 3. Guardrail OK
+
 4. Executor OK
+
 5. Main API OK
+
 ```
 
 ---
@@ -941,12 +1229,13 @@ Observed output:
 From:
 
 ```text
-C:\Users\DELL\recoverai\backend
+~/Recover-AI/backend
 ```
 
-with venv active:
+with the virtual environment active:
 
-```bat
+```bash
+source venv/bin/activate
 python -m uvicorn main:app --reload
 ```
 
@@ -969,8 +1258,11 @@ http://127.0.0.1:8000/docs
 If frontend displays:
 
 ```text
+
 RecoverAI connection error
+
 Unable to connect to the RecoverAI backend.
+
 ```
 
 first check whether Uvicorn is running.
@@ -981,7 +1273,7 @@ Do not immediately modify frontend code.
 
 # 40. Frontend Technology
 
-Observed frontend stack:
+Observed/current frontend stack:
 
 ```text
 React
@@ -990,6 +1282,8 @@ Vite
 Motion for React
 Lucide React
 Recharts
+React Router
+Supabase JavaScript client
 ```
 
 ---
@@ -997,7 +1291,7 @@ Recharts
 # 41. Frontend Path
 
 ```text
-C:\Users\DELL\recoverai\frontend
+~/Recover-AI/frontend
 ```
 
 Local development URL:
@@ -1006,57 +1300,90 @@ Local development URL:
 http://localhost:5173
 ```
 
+Start:
+
+```bash
+npm run dev
+```
+
 ---
 
 # 42. Frontend Source Structure
 
-Observed / implemented areas include:
+Current/representative implemented areas include:
 
 ```text
 frontend/src/
-├── components/
-│   ├── Sidebar.tsx
-│   ├── Header.tsx
-│   ├── MetricCard.tsx
-│   ├── transactions/
-│   │   └── DecisionDrawer.tsx
-│   └── agent/
-│       └── AgentReplay.tsx
-│
-├── pages/
-│   └── Dashboard.tsx
-│
-├── services/
-│   ├── dashboardApi.ts
-│   └── recoveryApi.ts
-│
-├── types/
-│   ├── dashboard.ts
-│   └── recovery.ts
-│
-├── App.tsx
-├── index.css
-└── main.tsx
+
+components/
+  Sidebar.tsx
+  Header.tsx
+  transactions/DecisionDrawer.tsx
+  agent/AgentReplay.tsx
+  ai/AIReasoningPanel.tsx
+  auth/ProtectedRoute.tsx
+
+pages/
+  Dashboard.tsx
+  Transactions.tsx
+  RecoveryAgent.tsx
+  Activity.tsx
+  Guardrails.tsx
+  Settings.tsx
+  Login.tsx
+  Signup.tsx
+
+services/
+  authFetch.ts
+  dashboardApi.ts
+  recoveryApi.ts
+  aiApi.ts
+  razorpayApi.ts
+
+lib/
+  supabase.ts
 ```
+
+Exact filenames may evolve, but the authenticated-service boundary and separation of concerns are current product behavior.
 
 ---
 
-# 43. Frontend Dashboard
+# 43. Frontend Application
 
-Observed dashboard currently includes:
+RecoverAI is no longer dashboard-only.
+
+Working product routes include:
 
 ```text
-Sidebar
-Header
-Command Center
-Hero
-Revenue metrics
-Recovery Queue
-Live Activity
-Demo/simulation label
-Run Recovery action
-Decision Drawer
+/
+transactions
+/recovery-agent
+/activity
+/guardrails
+/settings
+/signup
+/login
 ```
+
+The application includes:
+
+```text
+premium dark application shell
+path-aware sidebar navigation
+dashboard / transaction / recovery pages
+Decision Drawer
+Agent Replay
+AI explanation surface
+Guardrails page
+Settings page
+Signup / Login
+logout
+protected frontend routing
+```
+
+`/signup` and `/login` are public.
+
+Protected application pages require an authenticated Supabase session.
 
 ---
 
@@ -1065,7 +1392,9 @@ Decision Drawer
 Observed frontend visibly displays:
 
 ```text
+
 DEMO DATA · SIMULATION ENVIRONMENT
+
 ```
 
 This is important because dashboard metrics are currently demo values.
@@ -1087,16 +1416,23 @@ Canonical metric definitions belong to the PRD.
 Current file:
 
 ```text
+
 frontend/src/types/dashboard.ts
+
 ```
 
 It contains types for:
 
 ```text
+
 DashboardMetrics
+
 Transaction
+
 AgentActivity
+
 DashboardResponse
+
 ```
 
 Transaction also contains machine-readable recovery fields supplied by the backend.
@@ -1108,7 +1444,9 @@ Transaction also contains machine-readable recovery fields supplied by the backe
 Current file:
 
 ```text
+
 frontend/src/types/recovery.ts
+
 ```
 
 It contains frontend types for the recovery request/response and audit data.
@@ -1117,20 +1455,29 @@ It also contains mapping used by the Decision Drawer.
 
 ---
 
-# 48. Recovery API Service
+# 48. Frontend API Service Boundary
 
-Current file:
-
-```text
-frontend/src/services/recoveryApi.ts
-```
-
-Observed responsibilities:
+Current frontend service responsibilities include:
 
 ```text
-POST /api/recovery/execute
-GET  /api/recovery/audit/{transaction_id}
+dashboardApi.ts
+recoveryApi.ts
+aiApi.ts
+razorpayApi.ts
+authFetch.ts
 ```
+
+Protected browser API calls use the shared authenticated request helper.
+
+The helper obtains the current Supabase session access token and attaches:
+
+```text
+Authorization: Bearer <token>
+```
+
+Razorpay browser API calls have also been migrated to this authenticated helper.
+
+The frontend must never contain service-role credentials, Razorpay key secrets, webhook secrets, or private AI-provider keys.
 
 ---
 
@@ -1139,7 +1486,9 @@ GET  /api/recovery/audit/{transaction_id}
 Observed implementation uses an explicit:
 
 ```text
+
 RUN RECOVERY
+
 ```
 
 action.
@@ -1155,14 +1504,19 @@ Execution occurs only through the explicit recovery action.
 Current file:
 
 ```text
+
 frontend/src/components/transactions/DecisionDrawer.tsx
+
 ```
 
 Observed state:
 
 ```text
+
 IMPLEMENTED ✅
+
 SUCCESSFUL CASE VISUALLY VERIFIED ✅
+
 ```
 
 ---
@@ -1172,16 +1526,27 @@ SUCCESSFUL CASE VISUALLY VERIFIED ✅
 Observed screenshot verified:
 
 ```text
+
 RX18492
+
 ₹7,499
+
 Bank Unavailable
+
 Transient Bank Failure
+
 94%
+
 Delayed Retry
+
 Simulation Probability 72%
+
 Guardrail ALLOWED
+
 Execution RECOVERED
+
 +₹7,499
+
 ```
 
 This was generated from the actual backend recovery response.
@@ -1193,7 +1558,9 @@ This was generated from the actual backend recovery response.
 Observed drawer visibly contains:
 
 ```text
+
 SIMULATION
+
 ```
 
 and a disclaimer that simulated results are not real recovered revenue.
@@ -1207,12 +1574,19 @@ Decision Drawer displays recovery state returned by backend.
 It does not own:
 
 ```text
+
 Classification rules
+
 Retry rules
+
 Confidence safety
+
 Amount safety
+
 Guardrail decision
+
 Payment verification
+
 ```
 
 ---
@@ -1225,13 +1599,16 @@ Current file:
 frontend/src/components/agent/AgentReplay.tsx
 ```
 
-Observed state:
+Observed/current state:
 
 ```text
 IMPLEMENTED ✅
 INTEGRATED INTO DECISION DRAWER ✅
-FINAL VISUAL VERIFICATION PENDING
+BACKEND AUDIT CONTRACT VERIFIED ✅
+FINAL AUTHENTICATED BROWSER SUCCESS/BLOCKED E2E CHECK PENDING
 ```
+
+The remaining browser verification is a release/demo-readiness check, not an unimplemented Agent Replay architecture component.
 
 ---
 
@@ -1240,7 +1617,9 @@ FINAL VISUAL VERIFICATION PENDING
 Agent Replay calls:
 
 ```text
+
 GET /api/recovery/audit/{transaction_id}
+
 ```
 
 It does not fabricate a hardcoded six-stage timeline.
@@ -1257,9 +1636,9 @@ It resets the visible event count and animates existing audit events sequentiall
 
 ---
 
-# 57. Agent Replay Successful Path Expected Verification
+# 57. Agent Replay Successful Path — Final Browser Check
 
-Still visually verify:
+Final authenticated browser E2E should confirm:
 
 ```text
 RX18492
@@ -1272,13 +1651,13 @@ EXECUTE
 VERIFY
 ```
 
-and confirm replay repeats those same events.
+Replay should repeat only those backend audit events.
 
 ---
 
-# 58. Agent Replay Blocked Path Expected Verification
+# 58. Agent Replay Blocked Path — Final Browser Check
 
-Still visually verify:
+Final authenticated browser E2E should confirm:
 
 ```text
 RX20117
@@ -1296,33 +1675,35 @@ EXECUTE
 VERIFY
 ```
 
-This remains the immediate P0 verification task.
+This is part of the current release/demo verification sequence.
 
 ---
 
 # 59. Frontend Build
 
-Latest command:
-
-```bat
-npm run build
-```
-
-Latest observed result:
+Latest verified production build:
 
 ```text
-vite v8.2.2
-2216 modules transformed
-production build successful
+Vite 8.2.2
+2283 modules transformed
+build successful
 ```
 
-Observed output included:
+Observed output sizes at the verified checkpoint:
 
 ```text
-✓ built in 558ms
+CSS 32.91 kB
+CSS gzip 7.22 kB
+
+JS 665.74 kB
+JS gzip 190.34 kB
 ```
 
-No TypeScript build errors remained.
+The build completed successfully.
+
+A Vite warning noted that a generated chunk exceeded 500 kB.
+
+That warning is non-blocking and may be optimized later; it is not a current build failure.
 
 ---
 
@@ -1331,13 +1712,17 @@ No TypeScript build errors remained.
 Earlier build failure:
 
 ```text
+
 Cannot find module '../types/dashboard'
+
 ```
 
 Cause:
 
 ```text
+
 frontend/src/types/dashboard.ts
+
 ```
 
 did not exist.
@@ -1353,13 +1738,17 @@ Resolved.
 Earlier `DecisionDrawer.tsx` was accidentally created at:
 
 ```text
+
 src/transactions/DecisionDrawer.tsx
+
 ```
 
 instead of:
 
 ```text
+
 src/components/transactions/DecisionDrawer.tsx
+
 ```
 
 This caused the `../../types/recovery` import to fail.
@@ -1374,9 +1763,11 @@ Resolved.
 
 ```text
 PRODUCTION BUILD ✅
+TYPECHECK / BUNDLE PASS ✅
+NON-BLOCKING LARGE-CHUNK WARNING ⚠
 ```
 
-Do not describe the frontend as broken based on older errors.
+Do not describe the frontend as broken based on historical path/type errors.
 
 ---
 
@@ -1388,13 +1779,19 @@ Current frontend obtains dashboard data through:
 GET /api/dashboard
 ```
 
-Observed successful response contains:
+through the authenticated frontend API layer.
+
+The request requires a valid Supabase access token.
+
+Observed dashboard response shape includes:
 
 ```text
 metrics
 transactions
 agent_activity
 ```
+
+Anonymous access is expected to be rejected.
 
 ---
 
@@ -1403,19 +1800,33 @@ agent_activity
 Current explicit flow:
 
 ```text
+
 Recovery Queue row
+
       ↓
+
 RUN RECOVERY
+
       ↓
+
 POST /api/recovery/execute
+
       ↓
+
 RecoveryExecutionResponse
+
       ↓
+
 Decision Drawer
+
       ↓
+
 Agent Replay
+
       ↓
+
 GET /api/recovery/audit/{transaction_id}
+
 ```
 
 ---
@@ -1425,15 +1836,25 @@ GET /api/recovery/audit/{transaction_id}
 Observed successful frontend execution:
 
 ```text
+
 RX18492
+
       ↓
+
 RUN RECOVERY
+
       ↓
+
 Drawer opened
+
       ↓
+
 ALLOWED
+
       ↓
+
 RECOVERED
+
 ```
 
 This is visually verified.
@@ -1445,7 +1866,9 @@ This is visually verified.
 Backend dashboard now contains:
 
 ```text
+
 RX20117
+
 ```
 
 with the machine-readable data required to trigger the canonical blocked flow.
@@ -1456,49 +1879,40 @@ The dashboard API response was confirmed through curl.
 
 # 67. Current P0 Position
 
-Do not estimate.
-
-Use:
+Canonical progress belongs to:
 
 ```text
 docs/phases.md §32
 ```
 
-Current strict state recorded there:
+Current P0 core checklist:
 
 ```text
-13 / 14 verified
+14 / 14 core items complete
 ```
 
-Remaining item:
-
-```text
-final Agent Replay successful + blocked visual verification
-```
+The remaining authenticated browser success/blocked replay check is treated as **demo-readiness / E2E verification**, not a missing P0 core architecture item.
 
 ---
 
 # 68. What Is Not Implemented Yet
 
-Do not claim the following as complete:
+Current known incomplete/future areas include:
 
 ```text
-Supabase persistence
-Persistent audit storage
-Persistent idempotency
-Razorpay Test Mode integration
-Razorpay payment execution
-Razorpay webhooks
-Webhook signature verification
-Webhook duplicate handling
-AI Reasoner
-LLM fallback implementation
-SSE real-time dashboard
-Authentication
 Multi-merchant tenancy
-Advanced analytics
-Production deployment
+Merchant-level authorization
+Per-user merchant data scoping
+Cross-merchant row isolation
+Production Razorpay processing
+Production multi-worker concurrency proof
+SSE-driven live dashboard activity
+Fully production-derived dashboard metrics
+Deployment / production smoke testing
+Final demo freeze
 ```
+
+Do not move implemented authentication, Supabase persistence, AI reasoning, Razorpay Test Mode, or the signed webhook back into this list.
 
 ---
 
@@ -1507,10 +1921,21 @@ Production deployment
 Current status:
 
 ```text
-PENDING
+IMPLEMENTED ✅
 ```
 
-Do not start before final P0 Agent Replay verification unless the implementation phase documents are deliberately updated.
+Observed current use includes:
+
+```text
+Supabase/PostgreSQL gateway/recovery persistence
+persistent idempotency path
+gateway order/payment linkage
+verification/reconciliation state
+audit-related persistence
+Supabase Auth for browser users
+```
+
+Authentication does not imply tenant isolation.
 
 ---
 
@@ -1519,12 +1944,27 @@ Do not start before final P0 Agent Replay verification unless the implementation
 Current status:
 
 ```text
-PENDING
+RAZORPAY TEST MODE IMPLEMENTED ✅
+PRODUCTION RAZORPAY NOT IMPLEMENTED ❌
 ```
 
-No claim should be made that RecoverAI is currently executing real Razorpay recoveries.
+Implemented browser-facing operations:
 
-Current mode remains simulation.
+```text
+POST /api/razorpay/recovery-order
+POST /api/razorpay/verify-payment
+POST /api/razorpay/reconcile-payment
+```
+
+Implemented webhook:
+
+```text
+POST /api/razorpay/webhook
+```
+
+A real signed `payment.captured` Test Mode webhook has been proven end-to-end and persisted/linked.
+
+Do not describe Test Mode success as production merchant revenue.
 
 ---
 
@@ -1536,9 +1976,15 @@ Current observed file:
 backend/services/razorpay_service.py
 ```
 
-Earlier directory listing showed it as an empty placeholder.
+Current status:
 
-Do not treat file presence as implementation.
+```text
+IMPLEMENTED ✅
+```
+
+Observed responsibilities include Test Mode order/payment operations, server-side verification support, reconciliation support, and controlled gateway error handling.
+
+Private Razorpay credentials remain backend-only.
 
 ---
 
@@ -1550,9 +1996,31 @@ Current observed file:
 backend/services/ai_reasoner.py
 ```
 
-Earlier directory listing showed it as an empty placeholder.
+Current status:
 
-AI explanation is not currently part of the working recovery decision path.
+```text
+IMPLEMENTED ✅
+```
+
+Observed behavior includes:
+
+```text
+explanation-only reasoning
+GroqCloud-compatible provider dispatch
+grounded structured response handling
+deterministic fallback
+deterministic safety explanation
+```
+
+The AI layer does not own:
+
+```text
+classification authority
+recovery action authority
+guardrail authority
+execution permission
+payment success
+```
 
 ---
 
@@ -1563,12 +2031,19 @@ RecoverAI is not being built as a replacement payment gateway.
 It is the recovery:
 
 ```text
+
 decision
+
 safety
+
 explainability
+
 verification
+
 audit
+
 visibility
+
 ```
 
 layer around payment recovery execution.
@@ -1582,9 +2057,13 @@ Canonical positioning belongs to `project-overview.md` and PRD.
 Observed architecture maintains:
 
 ```text
+
 AI / frontend
+
      ≠
+
 financial safety authority
+
 ```
 
 Safety-critical decisions remain backend deterministic logic.
@@ -1593,17 +2072,20 @@ Safety-critical decisions remain backend deterministic logic.
 
 # 75. Current Money Claim Boundary
 
-The current UI uses demo/simulation data.
-
-Therefore wording must distinguish:
+Current product surfaces may contain:
 
 ```text
 SIMULATION
 DEMO DATA
 TEST ENVIRONMENT
+RAZORPAY TEST MODE
 ```
 
-from actual merchant revenue.
+These states must remain distinct from production merchant revenue.
+
+A verified Razorpay Test Mode payment proves a test-environment gateway outcome.
+
+It does not prove production merchant revenue recovery.
 
 ---
 
@@ -1614,9 +2096,13 @@ A successful execution action is not automatically treated as successful payment
 Current flow explicitly contains:
 
 ```text
+
 EXECUTE
+
    ↓
+
 VERIFY
+
 ```
 
 before `RECOVERED`.
@@ -1628,14 +2114,19 @@ before `RECOVERED`.
 If Guardrail returns:
 
 ```text
+
 BLOCKED
+
 ```
 
 the executor returns without creating:
 
 ```text
+
 EXECUTE
+
 VERIFY
+
 ```
 
 This behavior is covered by automated tests and manual API verification.
@@ -1649,11 +2140,13 @@ Frontend shows a clear backend connection error when `/api/dashboard` cannot be 
 Observed error state:
 
 ```text
+
 RecoverAI connection error
 
 Unable to connect to the RecoverAI backend.
 
 Make sure FastAPI is running on port 8000.
+
 ```
 
 This successfully identified when Uvicorn had stopped.
@@ -1669,41 +2162,47 @@ Terminal 1:
 backend Uvicorn
 
 Terminal 2:
-frontend Vite / npm
+frontend Vite
 
 Terminal 3:
-tests / curl as needed
+tests / Git / curl as needed
 ```
-
-Do not stop Uvicorn while testing in-memory audit behavior.
 
 ---
 
-# 80. In-Memory Audit Caveat
+# 80. Persistence Caveat
 
-Because audit is currently in memory:
+Gateway-linked recovery/idempotency state now has a persistent Supabase/PostgreSQL path.
+
+Deterministic simulation/tests may still use process-local stores.
+
+Therefore:
 
 ```text
-restart backend
-      ↓
-AUDIT_STORE reset
+process-local simulation state may reset on restart
 ```
 
-Therefore execute the transaction again after restart before expecting audit events.
+does **not** mean:
+
+```text
+all current RecoverAI gateway state is in-memory
+```
+
+Do not confuse the two paths.
 
 ---
 
-# 81. In-Memory Idempotency Caveat
+# 81. Idempotency Caveat
 
-Because idempotency is currently in memory:
+Persistent gateway-linked idempotency is implemented.
+
+Remaining limitation:
 
 ```text
-restart backend
-      ↓
-idempotency state reset
+production distributed / multi-worker concurrency proof
 ```
 
-This is acceptable for the current simulation checkpoint but not the final persistent financial architecture.
+has not been established through dedicated concurrency/load testing.
 
 ---
 
@@ -1712,15 +2211,25 @@ This is acceptable for the current simulation checkpoint but not the final persi
 Current workflow should continue to be:
 
 ```text
+
 modify
+
   ↓
+
 build/import
+
   ↓
+
 test
+
   ↓
+
 manual verify when needed
+
   ↓
+
 document
+
 ```
 
 Do not skip tests because a UI screenshot looks correct.
@@ -1729,19 +2238,23 @@ Do not skip tests because a UI screenshot looks correct.
 
 # 83. Current Backend Quality Gate
 
-Before major backend integrations, rerun:
+Before the next commit/release checkpoint, run:
 
-```bat
-python -m pytest tests -v
+```bash
+cd ~/Recover-AI/backend
+source venv/bin/activate
+python -m pytest -q
 ```
 
-Expected based on current state:
+Current verified baseline:
 
 ```text
-12 passed
+47 passed
+0 failed
+2 non-blocking warnings
 ```
 
-Any new integration should preserve existing P0 tests.
+Any new change must preserve the safety/authentication/Razorpay regression suite.
 
 ---
 
@@ -1750,13 +2263,17 @@ Any new integration should preserve existing P0 tests.
 Before considering frontend work stable, rerun:
 
 ```bat
+
 npm run build
+
 ```
 
 Current baseline:
 
 ```text
+
 build passes
+
 ```
 
 New frontend changes should not reduce this.
@@ -1768,11 +2285,17 @@ New frontend changes should not reduce this.
 When changing backend dependencies, rerun:
 
 ```text
+
 Classifier
+
 Recovery Engine
+
 Guardrail
+
 Executor
+
 Main API
+
 ```
 
 imports in dependency order.
@@ -1781,35 +2304,50 @@ imports in dependency order.
 
 # 86. Current Dashboard Demo Data
 
-Dashboard metrics are still hardcoded/demo data in the backend.
+Dashboard metrics still include demo/sample values.
 
-Do not describe them as database-derived metrics.
+Do not describe them as measured merchant production metrics merely because Supabase persistence exists.
 
-Persistent/calculated dashboard metrics belong to a future phase.
+Persistent storage and fully calculated dashboard metrics are separate concerns.
 
 ---
 
 # 87. Current Agent Activity
 
-Dashboard Live Activity currently uses demo/static backend data.
+The Activity/agent-activity experience exists.
 
-Do not describe it as SSE-driven real-time activity yet.
+SSE-driven live updates are not currently part of the verified product.
 
----
-
-# 88. Current Search UI
-
-The Command Center header visually includes search.
-
-Do not assume full search functionality unless separately implemented and tested.
+Do not use `LIVE` language unless a real live channel is active.
 
 ---
 
-# 89. Current Sidebar
+# 88. Current Search / Notification UI
 
-Sidebar UI exists.
+Search or notification controls must not be treated as completed functionality merely because a visual control exists.
 
-Navigation items should not be interpreted as completed product pages merely because they are displayed.
+Final polish should either wire the behavior or remove/disable misleading controls.
+
+---
+
+# 89. Current Sidebar / Navigation
+
+The sidebar is now part of a multi-page React Router workspace.
+
+Current navigation covers:
+
+```text
+Overview
+Transactions
+Recovery Agent
+Activity
+Guardrails
+Settings
+```
+
+The sidebar is path-aware and includes logout behavior.
+
+Navigation does not imply multi-merchant tenancy.
 
 ---
 
@@ -1823,28 +2361,45 @@ Avoid scope drift into a generic financial platform.
 
 # 91. Buildathon Core Demo Story
 
-Current strongest demo narrative:
+Current strongest narrative:
 
 ```text
-A payment fails
+User authenticates
       ↓
-RecoverAI detects it
+RecoverAI loads protected workspace
       ↓
-classifies the failure
+A payment failure is selected
       ↓
-selects a recovery strategy
+DETECT
       ↓
-runs deterministic guardrails
+CLASSIFY
       ↓
-allows or blocks the action
+DECIDE
       ↓
-simulates execution when allowed
+GUARDRAIL
       ↓
-verifies outcome
-      ↓
-shows the audit trail
-      ↓
-replays the agent decision visually
+allowed?
+   ↙       ↘
+ YES        NO
+ ↓          ↓
+EXECUTE     STOP
+ ↓
+VERIFY
+ ↓
+AUDIT / AGENT REPLAY
+```
+
+AI may explain the already-determined decision.
+
+Razorpay Test Mode may be shown as the gateway-integration proof point.
+
+The safety story must remain equally visible:
+
+```text
+RX20117
+GUARDRAIL → BLOCKED
+NO EXECUTE
+NO VERIFY
 ```
 
 ---
@@ -1854,7 +2409,9 @@ replays the agent decision visually
 Use:
 
 ```text
+
 RX18492
+
 ```
 
 for an allowed successful recovery.
@@ -1868,7 +2425,9 @@ Do not change the canonical demo ID casually because deterministic simulation de
 Use:
 
 ```text
+
 RX20117
+
 ```
 
 for the safety story.
@@ -1884,12 +2443,19 @@ This is strategically important to the product's safety positioning.
 Observed design:
 
 ```text
+
 dark fintech command center
+
 restrained accent colors
+
 premium side drawer
+
 subtle motion
+
 clear guardrail states
+
 simulation labeling
+
 ```
 
 Detailed design tokens belong to `design.md`.
@@ -1898,11 +2464,21 @@ Detailed design tokens belong to `design.md`.
 
 # 95. UI Work Rule
 
-Do not redesign the dashboard while core integrations are pending.
+Core persistence, AI, Razorpay Test Mode, webhook, and authentication integrations are no longer pending.
 
-Existing UI is already strong enough to support the current product demo.
+Current UI work should focus on release truthfulness and usability:
 
-Future UI work should improve usability or explainability rather than decorative complexity.
+```text
+authenticated browser E2E
+accurate demo/test labels
+Settings status truthfulness
+search/notification cleanup
+forgot-password cleanup or implementation
+autofill polish
+final responsive/demo polish
+```
+
+Do not introduce a major dashboard redesign unless a verified usability defect requires it.
 
 ---
 
@@ -1911,7 +2487,9 @@ Future UI work should improve usability or explainability rather than decorative
 Observed:
 
 ```text
+
 backend/main.py
+
 ```
 
 contains current dashboard demo data and recovery API routes.
@@ -1920,29 +2498,34 @@ It was cleaned to remove scattered imports and now includes the blocked demo tra
 
 ---
 
-# 97. Current Core Tests Are P0 Regression Tests
+# 97. Current Regression Suite
 
-The existing 12 tests should be preserved as regression protection while P1 integrations are added.
+The original 12 P0 tests remain important historical regression coverage, but the current verified suite has expanded.
 
-Do not delete them simply because Supabase or Razorpay introduces new test layers.
+Current baseline:
+
+```text
+47 passed
+0 failed
+```
+
+It now protects P0 recovery behavior plus AI, Razorpay, and authentication boundaries.
+
+Do not remove older core tests merely because newer integration tests exist.
 
 ---
 
-# 98. Persistent Storage Transition Rule
+# 98. Persistent Storage Transition State
 
-When Supabase is introduced:
+The planned storage transition has occurred for gateway/recovery-linked state.
 
-```text
-frontend
-```
-
-should not need to change its audit integration solely because storage changes.
-
-Current public audit interface remains:
+The frontend audit interface remains:
 
 ```text
 GET /api/recovery/audit/{transaction_id}
 ```
+
+Agent Replay should remain independent of whether a particular backend test/simulation path uses process-local state or the durable Supabase path.
 
 ---
 
@@ -1961,35 +2544,51 @@ Agent Replay must remain backed by actual audit events.
 Do not hardcode:
 
 ```text
+
 DETECT
+
 CLASSIFY
+
 DECIDE
+
 GUARDRAIL
+
 EXECUTE
+
 VERIFY
+
 ```
 
 as unconditional frontend stages.
 
 ---
 
-# 101. Current Documentation Reconstruction
+# 101. Current Documentation Alignment
 
-The project previously finalized documentation in conversation, but the files were not physically present in the local repository shown in VS Code.
-
-The `/docs` directory is now being rebuilt.
-
-Current reconstruction order:
+The documentation set has now been reviewed in authority order during the current drift pass:
 
 ```text
-1. phases.md
-2. memory.md
-3. rules.md
-4. architecture.md
-5. PRD.md
-6. design.md
-7. project-overview.md
+rules.md              updated
+architecture.md       updated
+PRD.md                updated
+design.md              updated
+project-overview.md   updated
+phases.md              updated
+memory.md             current update
 ```
+
+The purpose of this pass is to remove stale August 23 implementation claims such as:
+
+```text
+Supabase pending
+AI pending
+Razorpay pending
+webhook pending
+authentication pending
+12 tests only
+```
+
+without inventing capabilities that are still future.
 
 ---
 
@@ -2002,9 +2601,13 @@ Preserve finalized requirements and decisions.
 Clearly distinguish:
 
 ```text
+
 canonical requirement
+
 observed implementation
+
 planned target
+
 ```
 
 ---
@@ -2014,74 +2617,96 @@ planned target
 Before committing changes that affect behavior:
 
 ```text
+
 search documentation
+
       ↓
+
 find old names / thresholds / endpoint behavior
+
       ↓
+
 update stale references
+
       ↓
+
 update tests
+
       ↓
+
 update implementation
+
 ```
 
 Binding drift rules belong to `rules.md`.
 
 ---
 
-# 104. Current P1 Start Condition
+# 104. Current Release Gate
 
-Do not start P1 merely because backend tests pass.
+The P1 integration work described in the old August 23 checkpoint has already advanced substantially.
 
-Current remaining P0 checkpoint:
-
-```text
-Agent Replay visual verification
-```
-
-Once this is confirmed, update:
+Current release gate:
 
 ```text
-phases.md §32
-phases.md §34
-phases.md §35
-memory.md QUICK RESUME
+documentation drift closure
+      ↓
+backend regression re-run
+      ↓
+frontend production build
+      ↓
+authenticated browser E2E
+      ↓
+production CORS / environment review
+      ↓
+deployment smoke test
+      ↓
+demo freeze
 ```
 
-before starting P1.
+Do not reopen completed backend work unless the final verification exposes a real defect.
 
 ---
 
-# 105. Expected Next P1 Direction
+# 105. Expected Next Direction
 
-Per the current phase plan, after P0 closes, persistence/integration work begins according to `phases.md`.
+After documentation alignment, the next task is **not** another major feature phase.
 
-Do not use this memory file to redefine that sequence.
+The next direction is:
 
-Read `phases.md` before starting.
+```text
+authenticated browser E2E
+deployment readiness
+demo truthfulness
+submission freeze
+```
+
+Optional SSE, deeper analytics, and extra visual polish remain secondary.
 
 ---
 
 # 106. Current Known Good Backend Test Command
 
-```bat
-cd C:\Users\DELL\recoverai\backend
-venv\Scripts\activate
-python -m pytest tests -v
+```bash
+cd ~/Recover-AI/backend
+source venv/bin/activate
+python -m pytest -q
 ```
 
 Latest verified:
 
 ```text
-12 passed
+47 passed
+0 failed
+2 non-blocking warnings
 ```
 
 ---
 
 # 107. Current Known Good Frontend Build Command
 
-```bat
-cd C:\Users\DELL\recoverai\frontend
+```bash
+cd ~/Recover-AI/frontend
 npm run build
 ```
 
@@ -2091,13 +2716,15 @@ Latest verified:
 successful production build
 ```
 
+A non-blocking large-chunk warning remains.
+
 ---
 
 # 108. Current Known Good Backend Start Command
 
-```bat
-cd C:\Users\DELL\recoverai\backend
-venv\Scripts\activate
+```bash
+cd ~/Recover-AI/backend
+source venv/bin/activate
 python -m uvicorn main:app --reload
 ```
 
@@ -2105,8 +2732,8 @@ python -m uvicorn main:app --reload
 
 # 109. Current Known Good Frontend Start Command
 
-```bat
-cd C:\Users\DELL\recoverai\frontend
+```bash
+cd ~/Recover-AI/frontend
 npm run dev
 ```
 
@@ -2115,24 +2742,44 @@ npm run dev
 # 110. Current Health Check
 
 ```bat
-curl http://127.0.0.1:8000/health
+
+curl http\://127.0.0.1:8000/health
+
 ```
 
 Expected service:
 
 ```text
+
 RecoverAI API
+
 ```
 
 ---
 
 # 111. Current Dashboard Check
 
-```bat
-curl http://127.0.0.1:8000/api/dashboard
+The dashboard endpoint is protected:
+
+```text
+GET /api/dashboard
 ```
 
-The current response should contain the canonical success and blocked demo transactions.
+Expected anonymous behavior:
+
+```text
+401
+```
+
+Expected authenticated browser behavior:
+
+```text
+200
+```
+
+Do not paste or log the bearer token while testing.
+
+The authenticated response should contain the canonical success and blocked demo transactions.
 
 ---
 
@@ -2142,7 +2789,9 @@ The current response should contain the canonical success and blocked demo trans
 http://127.0.0.1:8000/docs
 ```
 
-Useful for manual API behavior inspection.
+Swagger remains useful for API inspection.
+
+Remember that protected endpoints now require authentication and the Razorpay webhook uses its separate signature trust boundary.
 
 ---
 
@@ -2152,31 +2801,46 @@ Useful for manual API behavior inspection.
 http://localhost:5173
 ```
 
-Expected:
+Expected when logged out:
 
 ```text
-RecoverAI Command Center
+Login / public auth experience
 ```
 
-when FastAPI and Vite are both running.
+Expected after successful Supabase login:
+
+```text
+Protected RecoverAI workspace
+```
+
+Direct access to protected routes while logged out should redirect to `/login`.
 
 ---
 
 # 114. Current Critical Limitations
 
-Current Buildathon prototype limitations:
+Current Buildathon limitations:
 
 ```text
-Audit persistence is in memory.
-Idempotency persistence is in memory.
-Dashboard metrics are demo data.
-Recovery execution is simulation.
-Razorpay is not integrated yet.
-AI Reasoner is not implemented yet.
-Live Activity is not real-time SSE yet.
+Dashboard metrics still include demo/sample values.
+SSE live activity is not implemented.
+Merchant-level authorization is not implemented.
+Tenant isolation is not implemented.
+Cross-merchant data isolation is not implemented.
+Production Razorpay processing is not implemented.
+Production multi-worker correctness is not proven.
+Deployment smoke testing is still pending.
 ```
 
-These should remain explicit.
+Important implemented distinctions:
+
+```text
+Supabase persistence          implemented
+AI explanation               implemented
+Razorpay Test Mode           implemented
+signed webhook               implemented
+browser authentication       implemented
+```
 
 ---
 
@@ -2185,46 +2849,59 @@ These should remain explicit.
 Do not claim:
 
 ```text
-Real merchant revenue was recovered.
+Real production merchant revenue was recovered.
 RecoverAI processed production Razorpay payments.
-Razorpay webhooks are active.
-Supabase audit persistence is complete.
-LLM reasoning is powering decisions.
+Authenticated users are isolated into merchant tenants.
 The product is production-ready.
-Idempotency survives crashes/restarts.
+SSE-driven live activity is implemented.
+All dashboard metrics are production-derived.
+Production multi-worker concurrency is proven.
+AI makes or overrides financial safety decisions.
 ```
 
-unless those conditions become implemented and verified later.
+Accurate claims include:
+
+```text
+Razorpay Test Mode integration is implemented.
+A signed Test Mode payment.captured webhook was proven.
+Supabase persistence/idempotency is implemented for gateway/recovery state.
+Supabase browser authentication is implemented.
+AI explanation with deterministic fallback is implemented.
+```
 
 ---
 
 # 116. Current Product Strength
 
-The current implemented strength is the controlled deterministic core:
+The current product combines:
 
 ```text
-failure understanding
-      ↓
-strategy selection
-      ↓
-safety guardrail
-      ↓
-simulation
-      ↓
-verification
-      ↓
-audit
-      ↓
-explainable UI
+deterministic recovery core
+      +
+guardrail safety
+      +
+persistent recovery/gateway state
+      +
+server-side payment verification
+      +
+Razorpay Test Mode integration
+      +
+signed webhook processing
+      +
+explanation-only AI
+      +
+authenticated browser workspace
+      +
+audit / Agent Replay
 ```
 
-This should remain the center of the Buildathon product.
+The deterministic safety core remains the center of the product.
 
 ---
 
 # 117. Current Safety Demo Strength
 
-The blocked transaction demonstrates an important product principle:
+The blocked transaction demonstrates:
 
 ```text
 RecoverAI's goal is not to retry everything.
@@ -2232,47 +2909,63 @@ RecoverAI's goal is not to retry everything.
 RecoverAI's goal is to recover safely.
 ```
 
-This behavior is currently backed by actual backend execution logic and tests.
+`RX20117` must stop at `GUARDRAIL — BLOCKED` with no `EXECUTE` or `VERIFY`.
+
+This behavior is covered by backend regression tests.
 
 ---
 
-# 118. Current Hiring / Demo Engineering Principle
+# 118. Current Demo Engineering Evidence
 
-The demo should show actual system behavior rather than only a polished UI.
-
-Current evidence already includes:
+Current evidence includes:
 
 ```text
-working APIs
-working safety checks
-automated tests
-audit trail
+working recovery APIs
+deterministic safety checks
+persistent gateway/recovery state
+persistent idempotency
+AI explanation + fallback
+Razorpay Test Mode order/payment integration
+server-side verification
+payment reconciliation
+signed webhook verification
+captured-payment synchronization
+Supabase authentication
+protected browser APIs
+47 backend tests passing
+frontend production build
 Decision Drawer
-simulation transparency
+Agent Replay contract
+simulation/Test Mode transparency
 ```
 
-Agent Replay visual verification is the final current P0 gate.
+The remaining release evidence should come from the final authenticated browser E2E and deployed smoke test.
 
 ---
 
-# 119. Current Repository Cleanup Pending
+# 119. Current Repository / Submission Cleanup Pending
 
-Before final submission, still verify:
+Before final submission, verify:
 
 ```text
-README
+git status
+README consistency
 .gitignore
 secret exclusion
-requirements.txt
+requirements / dependency metadata
 frontend package metadata
 setup instructions
 environment documentation
+production API base URL
+production CORS
 deployment instructions
 test commands
 known limitations
+demo video / media size
+submission claims
 ```
 
-This is not the immediate task.
+Do not commit until documentation, regression tests, frontend build, and final browser E2E are aligned.
 
 ---
 
@@ -2281,11 +2974,17 @@ This is not the immediate task.
 When a stable checkpoint is reached:
 
 ```text
+
 build
+
 test
+
 verify
+
 documentation drift check
+
 commit
+
 ```
 
 Avoid combining large unrelated refactors with payment safety changes.
@@ -2297,10 +2996,15 @@ Avoid combining large unrelated refactors with payment safety changes.
 At the beginning of a new working session:
 
 1. Read `QUICK RESUME`.
+
 2. Read the latest session entry.
+
 3. Check `phases.md §34`.
+
 4. Check `phases.md §35`.
+
 5. Run only the minimum commands needed to verify current state.
+
 6. Continue from the recorded immediate task.
 
 Do not restart development from memory or assumptions.
@@ -2309,88 +3013,229 @@ Do not restart development from memory or assumptions.
 
 # 122. Current Session Goal
 
-Current remaining task:
+Current task:
 
 ```text
-Verify Agent Replay in browser.
+Finish documentation drift alignment.
 ```
 
-Successful case:
+Then:
 
 ```text
-RX18492
-→ reaches VERIFY
-```
-
-Blocked case:
-
-```text
-RX20117
-→ stops at GUARDRAIL
+1. Re-run backend tests.
+2. Re-run frontend build.
+3. Start backend + frontend.
+4. Login through Supabase Auth.
+5. Verify protected dashboard.
+6. Verify RX18492 allowed flow.
+7. Verify AI explanation.
+8. Verify successful Agent Replay.
+9. Verify RX20117 blocked flow.
+10. Verify no EXECUTE / VERIFY after block.
+11. Verify logout / protected-route redirect.
+12. Review production CORS/env.
+13. Deploy / smoke-test.
+14. Freeze demo/submission claims.
 ```
 
 ---
 
 # 123. Current Session Snapshot
 
+**Date:** 2026-09-04
+
+## Work Confirmed by the Current Documentation / Verification Pass
+
+```text
+Core deterministic recovery pipeline remains implemented.
+
+Supabase/PostgreSQL gateway/recovery persistence implemented.
+
+Persistent gateway-linked idempotency implemented.
+
+AI reasoning layer implemented.
+
+GroqCloud provider integration implemented.
+
+Deterministic AI fallback implemented.
+
+Razorpay Test Mode recovery-order flow implemented.
+
+Razorpay payment verification implemented.
+
+Razorpay reconciliation implemented.
+
+Signed Razorpay webhook implemented.
+
+Invalid-signature rejection verified.
+
+payment.captured synchronization proven in Test Mode.
+
+Supabase browser authentication implemented.
+
+Protected frontend routing implemented.
+
+Protected backend browser APIs implemented.
+
+Razorpay browser APIs protected with user authentication.
+
+Razorpay webhook remains signature-authenticated separately.
+
+Frontend Razorpay API service migrated to authenticated fetch.
+
+Frontend production build verified.
+
+Backend regression suite verified:
+47 passed / 0 failed / 2 non-blocking warnings.
+```
+
+## Current Known Limitations
+
+```text
+Tenant isolation not implemented.
+
+Merchant-level authorization not implemented.
+
+Cross-merchant data isolation not implemented.
+
+Production Razorpay processing not implemented.
+
+SSE live dashboard not implemented.
+
+Dashboard demo metrics still exist.
+
+Production multi-worker concurrency not proven.
+
+Deployment / demo freeze still pending.
+```
+
+## Immediate Next Work
+
+```text
+Complete memory.md drift update.
+
+Then:
+
+backend regression re-run
+frontend build re-run
+authenticated browser E2E
+deployment configuration review
+deployment smoke test
+demo freeze
+```
+
+## Historical Snapshot Preserved
+
+The previous August 23 Section 123 snapshot is preserved below because this memory file treats session history as append-only.
+
+<details>
+<summary>Previous Section 123 — 2026-08-23</summary>
+
+## Historical Section 123 Snapshot — 2026-08-23
+
 **Date:** 2026-08-23
 
 ## Work Completed During This Session
 
 ```text
+
 Fixed Recovery Engine self-import.
+
 Verified Recovery Engine import.
+
 Verified Guardrail import.
+
 Created Recovery Executor.
+
 Added deterministic execution simulation.
+
 Added in-memory audit storage.
+
 Added in-memory idempotency.
+
 Verified successful executor case.
+
 Verified blocked executor case.
+
 Verified duplicate request idempotency.
+
 Verified successful Execute API in Swagger.
+
 Verified Audit API in Swagger.
+
 Verified blocked Execute API.
+
 Verified blocked Audit API.
+
 Created 6 recovery flow tests.
+
 Created 6 FastAPI API tests.
+
 Reached 12/12 backend test pass.
+
 Verified complete backend import chain.
+
 Created frontend recovery types.
+
 Created recoveryApi service.
+
 Restored dashboard types.
+
 Created Decision Drawer.
+
 Integrated dashboard recovery action.
+
 Added machine-readable dashboard fields.
+
 Added visible demo/simulation label.
+
 Verified Decision Drawer successful result.
+
 Created Agent Replay.
+
 Integrated Agent Replay into Decision Drawer.
+
 Added RX20117 blocked demo row.
+
 Verified production frontend build.
+
 Began physical /docs reconstruction.
+
 ```
 
 ## Latest Verified Backend
 
 ```text
+
 12 / 12 tests passing
+
 5 / 5 import checks passing
+
 ```
 
 ## Latest Verified Frontend
 
 ```text
+
 Production build passing
+
 Decision Drawer successful case visible
+
 ```
 
 ## Still Pending
 
 ```text
+
 Agent Replay successful UI verification
+
 Agent Replay blocked UI verification
+
 ```
+
+---
+
+</details>
 
 ---
 
@@ -2399,10 +3244,13 @@ Agent Replay blocked UI verification
 When a session materially advances or completes P0:
 
 - Replace Section 123 with the new current snapshot.
+
 - Move the previous snapshot unchanged into:
 
 ```text
+
 docs/SESSION_LOG.md
+
 ```
 
 or an append-only `Session History` section at the bottom of this document.
@@ -2418,25 +3266,37 @@ Do not silently delete old snapshots if they are needed for project history.
 Future memory updates should not re-store canonical values that are owned by:
 
 ```text
+
 rules.md
+
 architecture.md
+
 PRD.md
+
 design.md
+
 phases.md
+
 backend/core/config.py
+
 ```
 
 Instead write:
 
 ```text
+
 Target:
+
 See rules.md / config.py.
 
 Observed current state:
-<what the repository actually does>
+
+\<what the repository actually does>
 
 Drift:
-<difference if any>
+
+\<difference if any>
+
 ```
 
 Existing repeated values in historical memory may remain as history, but new updates should reference the owning document.
@@ -2452,12 +3312,19 @@ Existing repeated values in historical memory may remain as history, but new upd
 It should always state:
 
 ```text
+
 date
+
 current phase
+
 last confirmed working
+
 current blocker/pending verification
+
 immediate file/task
+
 what not to start yet
+
 ```
 
 The current QUICK RESUME is Section 2.
@@ -2469,11 +3336,17 @@ The current QUICK RESUME is Section 2.
 At the end of a meaningful session:
 
 ```text
+
 current Section 123 snapshot
+
       ↓
+
 append unchanged to SESSION_LOG.md
+
       ↓
+
 write a new Section 123 snapshot
+
 ```
 
 Session history is append-only.
@@ -2484,78 +3357,58 @@ The new snapshot should describe observations, not rewrite canonical requirement
 
 # 128. Progress Estimate Rule
 
-Do not report approximate P0 completion percentages.
+Do not report arbitrary completion percentages.
 
-Calculate P0 progress only from:
+Canonical P0 progress belongs to:
 
 ```text
 phases.md §32
 ```
 
-Formula:
+Current phase document records:
 
 ```text
-number of checked P0 items
-──────────────────────────
-total P0 checklist items
+14 total P0 core items
+14 / 14 core items complete
 ```
 
-Current `phases.md` has:
+The authenticated browser E2E is still required for final demo/release confidence.
 
-```text
-14 total P0 items
-```
-
-Current recorded strict progress:
-
-```text
-13 / 14 verified
-```
-
-Overall project completion, if ever discussed separately, must be clearly distinguished from P0 completion and must not be guessed.
+Overall project completion must remain separate from P0-core completion and must not be guessed.
 
 ---
 
 # 129. Path Portability Rule
 
-Current hardcoded Windows path is valid for the present solo development machine:
+Current development environment:
 
 ```text
-C:\Users\DELL\recoverai
-```
-
-If development moves to:
-
-```text
-another Windows machine
 macOS
-Linux
-CI
-another developer workstation
+~/Recover-AI
 ```
 
-manually adapt path-specific instructions.
+Older Windows paths in preserved historical notes refer to the earlier development machine/checkpoint.
 
-No portability refactor is required right now.
+If development moves to another machine, CI, Linux, or another developer workstation, adapt path-specific commands.
+
+No portability refactor is required solely for the Buildathon demo.
 
 ---
 
 # 130. Immediate Resume Commands
 
-If starting a new session now:
-
 ## Terminal 1 — Backend
 
-```bat
-cd C:\Users\DELL\recoverai\backend
-venv\Scripts\activate
+```bash
+cd ~/Recover-AI/backend
+source venv/bin/activate
 python -m uvicorn main:app --reload
 ```
 
 ## Terminal 2 — Frontend
 
-```bat
-cd C:\Users\DELL\recoverai\frontend
+```bash
+cd ~/Recover-AI/frontend
 npm run dev
 ```
 
@@ -2565,21 +3418,25 @@ Then open:
 http://localhost:5173
 ```
 
-Test:
+Expected initial state when logged out:
 
 ```text
-RX18492 → RUN RECOVERY → AGENT REPLAY
-RX20117 → RUN RECOVERY → AGENT REPLAY
+/login
 ```
+
+Login with a valid Supabase user session.
+
+Then verify the protected workspace.
 
 ---
 
 # 131. Immediate Success Criteria
 
-For `RX18492`:
+For the authenticated allowed case:
 
 ```text
-Agent Replay:
+RX18492
+
 DETECT
 CLASSIFY
 DECIDE
@@ -2588,48 +3445,70 @@ EXECUTE
 VERIFY
 ```
 
-For `RX20117`:
+Also confirm the AI explanation endpoint/surface succeeds without changing the deterministic decision.
+
+For the blocked case:
 
 ```text
-Agent Replay:
+RX20117
+
 DETECT
 CLASSIFY
 DECIDE
 GUARDRAIL — BLOCKED
 ```
 
-Forbidden for blocked case:
+Forbidden:
 
 ```text
 EXECUTE
 VERIFY
 ```
 
-If both are visually confirmed:
+Also confirm:
 
-1. Update `phases.md §32` to `14/14`.
-2. Update `phases.md §34`.
-3. Update `phases.md §35`.
-4. Replace QUICK RESUME.
-5. Rotate Section 123 into session history.
-6. Begin the documented P1 next phase.
-# Frontend AI Decision Analysis — Current Status
+```text
+logout ends the session
+direct protected route while logged out → /login
+```
 
-The GroqCloud-backed AI explanation layer is now connected to the existing RecoverAI Decision Drawer.
+After successful E2E:
 
-Current frontend files:
+```text
+review production CORS/env
+deploy
+smoke-test
+freeze demo claims
+```
+
+---
+
+# 132. Frontend AI Decision Analysis — Current Status
+
+The GroqCloud-backed AI explanation layer is connected to the existing RecoverAI Decision Drawer.
+
+Current frontend areas include:
 
 ```text
 frontend/src/components/ai/AIReasoningPanel.tsx
 frontend/src/services/aiApi.ts
 frontend/src/types/ai.ts
 frontend/src/components/transactions/DecisionDrawer.tsx
+```
+
+The AI surface receives deterministic context.
+
+It does not own or override the financial decision.
+
+If the provider fails, deterministic fallback remains available.
+
 ---
-# Multi-Page Product Workspace — Current Status
+
+# 133. Multi-Page Product Workspace — Current Status
 
 RecoverAI is no longer dashboard-only.
 
-React Router now provides working navigation for:
+React Router provides navigation for:
 
 ```text
 Overview
@@ -2638,4 +3517,131 @@ Recovery Agent
 Activity
 Guardrails
 Settings
+```
+
+Public auth routes include:
+
+```text
+/login
+/signup
+```
+
+Protected routes require a Supabase-authenticated session.
+
+---
+
+# 134. Authentication — Current Status
+
+Current browser trust flow:
+
+```text
+Supabase Auth
+      ↓
+Supabase access token
+      ↓
+Authorization: Bearer <token>
+      ↓
+FastAPI get_current_user
+      ↓
+Protected RecoverAI API
+```
+
+Missing or invalid authentication is expected to return `401` for protected browser-facing endpoints.
+
+Authentication establishes identity and blocks anonymous access.
+
+It does **not** provide:
+
+```text
+merchant-level authorization
+tenant isolation
+per-user merchant data scoping
+cross-merchant isolation
+```
+
+---
+
+# 135. Razorpay Authentication Boundaries — Current Status
+
+Razorpay browser APIs require RecoverAI user authentication:
+
+```text
+POST /api/razorpay/recovery-order
+POST /api/razorpay/verify-payment
+POST /api/razorpay/reconcile-payment
+```
+
+The Razorpay webhook is different:
+
+```text
+Razorpay
+      ↓
+POST /api/razorpay/webhook
+      ↓
+X-Razorpay-Signature verification
+```
+
+Do not require a Supabase browser-user JWT for the webhook.
+
+Do not weaken Razorpay signature verification because browser authentication exists.
+
+---
+
+# 136. Current Documentation Drift State
+
+The current documentation authority chain has been aligned through:
+
+```text
+rules.md
+architecture.md
+PRD.md
+design.md
+project-overview.md
+phases.md
+memory.md
+```
+
+The major stale August 23 claims removed from current-state sections include:
+
+```text
+Supabase pending
+AI pending
+Razorpay pending
+webhook pending
+authentication pending
+12 tests only
+Windows-only resume commands
+simulation-only product state
+```
+
+Historical August 23 observations remain preserved where useful as history.
+
+---
+
+# 137. Current Release Gate
+
+The current release sequence is:
+
+```text
+DOCUMENTATION ALIGNED
+      ↓
+RE-RUN BACKEND TESTS
+      ↓
+RE-RUN FRONTEND BUILD
+      ↓
+AUTHENTICATED BROWSER E2E
+      ↓
+CORS / ENV REVIEW
+      ↓
+DEPLOY
+      ↓
+SMOKE TEST
+      ↓
+DEMO FREEZE
+```
+
+Do not add another major feature phase before this gate unless a critical defect requires it.
+
+---
+
 # END OF MEMORY DOCUMENT

@@ -3,47 +3,43 @@ import {
   useState,
 } from "react";
 
+import type {
+  ReactNode,
+} from "react";
+
 import {
-  Settings as SettingsIcon,
-  Server,
-  BrainCircuit,
-  CreditCard,
-  ShieldCheck,
-  CheckCircle2,
   AlertTriangle,
-  RefreshCw,
+  BrainCircuit,
+  CheckCircle2,
+  CreditCard,
   LockKeyhole,
+  RefreshCw,
+  Server,
+  ShieldCheck,
 } from "lucide-react";
 
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
 
 
+// =========================================================
+// COLORS
+// =========================================================
+
 const COLORS = {
   surface: "#0D1116",
-
   elevated: "#11161C",
-
   border:
     "rgba(255,255,255,0.065)",
-
   borderSoft:
     "rgba(255,255,255,0.04)",
-
   text: "#F3F4F6",
-
   muted: "#9BA2AA",
-
   subtle: "#747B83",
-
   accent: "#E5DCC7",
-
   gold: "#93866A",
-
   success: "#A7BB86",
-
   warning: "#C7B58D",
-
   error: "#C97B74",
 };
 
@@ -57,6 +53,11 @@ type BackendState =
   | "checking"
   | "online"
   | "offline";
+
+
+type IntegrationState =
+  | BackendState
+  | "configured";
 
 
 // =========================================================
@@ -110,8 +111,18 @@ export default function Settings() {
 
 
   useEffect(() => {
-    checkBackend();
+    void checkBackend();
   }, []);
+
+
+  const backendLabel =
+    backendState ===
+    "online"
+      ? "Reachable"
+      : backendState ===
+          "checking"
+        ? "Checking..."
+        : "Unavailable";
 
 
   // =======================================================
@@ -130,104 +141,43 @@ export default function Settings() {
         <section
           style={{
             padding:
-              "30px 32px 48px",
+              "10px 32px 48px",
           }}
         >
           {/* ================================================= */}
-          {/* PAGE HEADER                                       */}
+          {/* COMPACT PAGE CONTEXT                              */}
           {/* ================================================= */}
 
           <div
             style={{
               display: "flex",
-
               justifyContent:
                 "space-between",
-
               alignItems:
-                "flex-end",
-
-              gap: 24,
-
-              marginBottom: 28,
-
+                "center",
+              gap: 18,
+              marginBottom: 15,
               flexWrap: "wrap",
             }}
           >
-            <div>
-              <div
-                style={{
-                  display: "flex",
-
-                  alignItems:
-                    "center",
-
-                  gap: 8,
-
-                  marginBottom: 9,
-
-                  color:
-                    COLORS.gold,
-
-                  fontSize: 10,
-
-                  fontWeight: 800,
-
-                  letterSpacing:
-                    "0.15em",
-                }}
-              >
-                <SettingsIcon
-                  size={14}
-                />
-
-                SYSTEM CONFIGURATION
-              </div>
-
-
-              <h1
-                style={{
-                  margin: 0,
-
-                  color:
-                    COLORS.text,
-
-                  fontFamily:
-                    "Manrope, sans-serif",
-
-                  fontSize: 32,
-
-                  fontWeight: 650,
-
-                  letterSpacing:
-                    "-0.04em",
-                }}
-              >
-                Settings
-              </h1>
-
-
-              <p
-                style={{
-                  maxWidth: 680,
-
-                  margin:
-                    "9px 0 0",
-
-                  color:
-                    COLORS.muted,
-
-                  fontSize: 13,
-
-                  lineHeight: 1.65,
-                }}
-              >
-                Review the current
-                RecoverAI environment,
-                integrations, and safety
-                boundaries.
-              </p>
-            </div>
+            <p
+              style={{
+                maxWidth: 720,
+                margin: 0,
+                color:
+                  COLORS.muted,
+                fontSize: 12,
+                lineHeight: 1.65,
+              }}
+            >
+              Review the current
+              RecoverAI environment,
+              integration configuration,
+              and financial safety
+              boundaries. Only the backend
+              API is actively health-checked
+              from this screen.
+            </p>
 
 
             <button
@@ -235,45 +185,98 @@ export default function Settings() {
               onClick={
                 checkBackend
               }
+              disabled={
+                backendState ===
+                "checking"
+              }
               style={{
                 display:
                   "inline-flex",
-
                 alignItems:
                   "center",
-
                 gap: 7,
-
-                height: 36,
-
+                height: 34,
                 padding:
-                  "0 12px",
-
+                  "0 11px",
                 borderRadius: 9,
-
                 border:
                   `1px solid ${COLORS.border}`,
-
                 background:
                   COLORS.surface,
-
                 color:
-                  COLORS.accent,
-
+                  backendState ===
+                  "checking"
+                    ? COLORS.subtle
+                    : COLORS.accent,
                 fontSize: 9,
-
                 fontWeight: 750,
-
                 cursor:
-                  "pointer",
+                  backendState ===
+                  "checking"
+                    ? "wait"
+                    : "pointer",
+                opacity:
+                  backendState ===
+                  "checking"
+                    ? 0.72
+                    : 1,
               }}
             >
               <RefreshCw
                 size={13}
               />
 
-              CHECK SYSTEM
+              {backendState ===
+              "checking"
+                ? "CHECKING API"
+                : "CHECK BACKEND"}
             </button>
+          </div>
+
+
+          {/* ================================================= */}
+          {/* ENVIRONMENT TRUTH STRIP                           */}
+          {/* ================================================= */}
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(3, minmax(0, 1fr))",
+              gap: 10,
+              marginBottom: 16,
+            }}
+          >
+            <TruthCard
+              label="Backend status"
+              value={
+                backendLabel
+              }
+              detail="Live /health check"
+              tone={
+                backendState ===
+                "online"
+                  ? "success"
+                  : backendState ===
+                      "offline"
+                    ? "error"
+                    : "warning"
+              }
+            />
+
+            <TruthCard
+              label="Payment environment"
+              value="Razorpay Test Mode"
+              detail="Configured · not health-checked here"
+              tone="neutral"
+            />
+
+            <TruthCard
+              label="AI role"
+              value="Explanation only"
+              detail="Provider availability not inferred"
+              tone="neutral"
+            />
           </div>
 
 
@@ -281,7 +284,9 @@ export default function Settings() {
           {/* ENVIRONMENT                                       */}
           {/* ================================================= */}
 
-          <SectionTitle>
+          <SectionTitle
+            detail="Only Backend API reports live reachability"
+          >
             ENVIRONMENT
           </SectionTitle>
 
@@ -290,13 +295,10 @@ export default function Settings() {
             className="settings-status-grid"
             style={{
               display: "grid",
-
               gridTemplateColumns:
                 "repeat(3, minmax(0, 1fr))",
-
               gap: 12,
-
-              marginBottom: 26,
+              marginBottom: 22,
             }}
           >
             <StatusCard
@@ -307,19 +309,22 @@ export default function Settings() {
               }
               label="Backend API"
               value={
-                backendState ===
-                "online"
-                  ? "Online"
-                  : backendState ===
-                      "checking"
-                    ? "Checking..."
-                    : "Offline"
+                backendLabel
               }
               description={
                 API_BASE_URL
               }
               status={
                 backendState
+              }
+              statusText={
+                backendState ===
+                "online"
+                  ? "HEALTH CHECK PASSED"
+                  : backendState ===
+                      "checking"
+                    ? "CHECKING"
+                    : "HEALTH CHECK FAILED"
               }
             />
 
@@ -332,8 +337,9 @@ export default function Settings() {
               }
               label="Payment Gateway"
               value="Razorpay Test Mode"
-              description="Gateway integration is isolated from real-money production payments."
-              status="online"
+              description="Test-mode integration is configured. This card does not claim current gateway availability."
+              status="configured"
+              statusText="CONFIGURED"
             />
 
 
@@ -345,32 +351,31 @@ export default function Settings() {
               }
               label="AI Provider"
               value="GroqCloud"
-              description="Used only for grounded operator-facing explanations."
-              status="online"
+              description="Configured for grounded operator-facing explanations. Availability is not inferred from backend health."
+              status="configured"
+              statusText="CONFIGURED"
             />
           </div>
 
 
           {/* ================================================= */}
-          {/* AI CONFIGURATION                                  */}
+          {/* AI SAFETY BOUNDARY                                */}
           {/* ================================================= */}
 
-          <SectionTitle>
+          <SectionTitle
+            detail="Deterministic core remains authoritative"
+          >
             AI SAFETY BOUNDARY
           </SectionTitle>
 
 
           <div
             style={{
-              padding: 20,
-
-              marginBottom: 26,
-
+              padding: 19,
+              marginBottom: 22,
               borderRadius: 16,
-
               border:
                 `1px solid ${COLORS.border}`,
-
               background:
                 COLORS.surface,
             }}
@@ -378,48 +383,34 @@ export default function Settings() {
             <div
               style={{
                 display: "flex",
-
                 justifyContent:
                   "space-between",
-
                 alignItems:
                   "flex-start",
-
                 gap: 20,
-
-                marginBottom: 18,
-
+                marginBottom: 16,
                 flexWrap: "wrap",
               }}
             >
               <div
                 style={{
                   display: "flex",
-
                   alignItems:
                     "center",
-
                   gap: 11,
                 }}
               >
                 <div
                   style={{
                     width: 38,
-
                     height: 38,
-
                     display: "grid",
-
                     placeItems:
                       "center",
-
                     flexShrink: 0,
-
                     borderRadius: 11,
-
                     background:
                       "rgba(229,220,199,0.045)",
-
                     color:
                       COLORS.accent,
                   }}
@@ -435,25 +426,21 @@ export default function Settings() {
                     style={{
                       color:
                         COLORS.text,
-
                       fontSize: 13,
                     }}
                   >
                     Explanation-only AI
                   </strong>
 
-
                   <div
                     style={{
                       marginTop: 4,
-
                       color:
                         COLORS.subtle,
-
                       fontSize: 10,
                     }}
                   >
-                    Deterministic core remains authoritative
+                    AI assists reasoning visibility, not execution authority
                   </div>
                 </div>
               </div>
@@ -463,27 +450,20 @@ export default function Settings() {
                 style={{
                   padding:
                     "6px 9px",
-
                   borderRadius: 999,
-
                   border:
-                    "1px solid rgba(167,187,134,0.16)",
-
+                    `1px solid ${COLORS.border}`,
                   background:
-                    "rgba(167,187,134,0.06)",
-
+                    "rgba(255,255,255,0.018)",
                   color:
-                    COLORS.success,
-
+                    COLORS.accent,
                   fontSize: 8,
-
                   fontWeight: 800,
-
                   letterSpacing:
-                    "0.1em",
+                    "0.08em",
                 }}
               >
-                SAFETY ENFORCED
+                DETERMINISTIC BOUNDARY
               </span>
             </div>
 
@@ -492,40 +472,45 @@ export default function Settings() {
               className="settings-boundary-grid"
               style={{
                 display: "grid",
-
                 gridTemplateColumns:
                   "repeat(2, minmax(0, 1fr))",
-
                 gap: 10,
               }}
             >
-              <BoundaryItem>
-                Generate diagnosis and
-                explanation
+              <BoundaryItem
+                mode="allowed"
+              >
+                Generate grounded diagnosis
+                and explanation
               </BoundaryItem>
 
-
-              <BoundaryItem>
+              <BoundaryItem
+                mode="allowed"
+              >
                 Explain recovery rationale
               </BoundaryItem>
 
-
-              <BoundaryItem>
+              <BoundaryItem
+                mode="blocked"
+              >
                 Cannot override guardrails
               </BoundaryItem>
 
-
-              <BoundaryItem>
+              <BoundaryItem
+                mode="blocked"
+              >
                 Cannot authorize execution
               </BoundaryItem>
 
-
-              <BoundaryItem>
+              <BoundaryItem
+                mode="blocked"
+              >
                 Cannot mark payment successful
               </BoundaryItem>
 
-
-              <BoundaryItem>
+              <BoundaryItem
+                mode="blocked"
+              >
                 Cannot bypass verification
               </BoundaryItem>
             </div>
@@ -533,25 +518,23 @@ export default function Settings() {
 
 
           {/* ================================================= */}
-          {/* SECURITY                                          */}
+          {/* SECURITY & SECRETS                                */}
           {/* ================================================= */}
 
-          <SectionTitle>
+          <SectionTitle
+            detail="Client interface exposes no secret values"
+          >
             SECURITY & SECRETS
           </SectionTitle>
 
 
           <div
             style={{
-              padding: 20,
-
-              marginBottom: 26,
-
+              padding: 19,
+              marginBottom: 22,
               borderRadius: 16,
-
               border:
                 `1px solid ${COLORS.border}`,
-
               background:
                 COLORS.surface,
             }}
@@ -559,19 +542,31 @@ export default function Settings() {
             <div
               style={{
                 display: "flex",
-
                 alignItems:
                   "flex-start",
-
                 gap: 12,
               }}
             >
-              <LockKeyhole
-                size={18}
-                color={
-                  COLORS.gold
-                }
-              />
+              <div
+                style={{
+                  width: 35,
+                  height: 35,
+                  display:
+                    "grid",
+                  placeItems:
+                    "center",
+                  flexShrink: 0,
+                  borderRadius: 10,
+                  background:
+                    "rgba(147,134,106,0.06)",
+                  color:
+                    COLORS.gold,
+                }}
+              >
+                <LockKeyhole
+                  size={17}
+                />
+              </div>
 
 
               <div>
@@ -579,7 +574,6 @@ export default function Settings() {
                   style={{
                     color:
                       COLORS.text,
-
                     fontSize: 12,
                   }}
                 >
@@ -589,16 +583,12 @@ export default function Settings() {
 
                 <p
                   style={{
-                    maxWidth: 760,
-
+                    maxWidth: 800,
                     margin:
                       "7px 0 0",
-
                     color:
                       COLORS.muted,
-
                     fontSize: 11,
-
                     lineHeight: 1.65,
                   }}
                 >
@@ -606,9 +596,9 @@ export default function Settings() {
                   GroqCloud API keys,
                   Razorpay secrets,
                   webhook secrets, or
-                  Supabase credentials in
-                  the frontend settings
-                  interface.
+                  backend-only Supabase
+                  credentials in the frontend
+                  Settings interface.
                 </p>
               </div>
             </div>
@@ -619,7 +609,9 @@ export default function Settings() {
           {/* EXECUTION MODEL                                   */}
           {/* ================================================= */}
 
-          <SectionTitle>
+          <SectionTitle
+            detail="Financial actions remain constrained and verified"
+          >
             EXECUTION MODEL
           </SectionTitle>
 
@@ -628,10 +620,8 @@ export default function Settings() {
             className="settings-execution-grid"
             style={{
               display: "grid",
-
               gridTemplateColumns:
                 "repeat(4, minmax(0, 1fr))",
-
               gap: 10,
             }}
           >
@@ -641,20 +631,18 @@ export default function Settings() {
               detail="Deterministic recovery rules"
             />
 
-
             <ExecutionStep
               number="02"
               title="Guard"
               detail="Authoritative safety checks"
+              highlighted
             />
-
 
             <ExecutionStep
               number="03"
               title="Execute"
               detail="Only after authorization"
             />
-
 
             <ExecutionStep
               number="04"
@@ -665,39 +653,164 @@ export default function Settings() {
 
 
           {/* ================================================= */}
-          {/* SAFETY NOTE                                       */}
+          {/* READ-ONLY NOTE                                    */}
           {/* ================================================= */}
 
           <div
             style={{
-              marginTop: 15,
-
-              padding:
-                "12px 14px",
-
-              borderRadius: 10,
-
-              border:
-                `1px solid ${COLORS.borderSoft}`,
-
+              display: "flex",
+              alignItems:
+                "flex-start",
+              gap: 8,
+              marginTop: 14,
               color:
                 COLORS.subtle,
-
               fontSize: 10,
-
               lineHeight: 1.6,
             }}
           >
-            This Settings view is
-            intentionally read-only for
-            the current Buildathon
-            environment. Financial safety
-            thresholds are enforced by the
-            backend rather than editable
-            client-side controls.
+            <ShieldCheck
+              size={12}
+              style={{
+                marginTop: 2,
+                flexShrink: 0,
+              }}
+            />
+
+            <span>
+              This Settings view is
+              intentionally read-only for
+              the current Buildathon
+              environment. Financial safety
+              thresholds are enforced by
+              the backend rather than
+              editable client-side controls.
+            </span>
           </div>
         </section>
       </main>
+    </div>
+  );
+}
+
+
+// =========================================================
+// TRUTH CARD
+// =========================================================
+
+function TruthCard({
+  label,
+  value,
+  detail,
+  tone,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  tone:
+    | "success"
+    | "warning"
+    | "error"
+    | "neutral";
+}) {
+  const palette = {
+    success: {
+      value:
+        COLORS.success,
+      border:
+        "rgba(167,187,134,0.12)",
+      background:
+        "rgba(167,187,134,0.03)",
+    },
+
+    warning: {
+      value:
+        COLORS.warning,
+      border:
+        "rgba(199,181,141,0.12)",
+      background:
+        "rgba(199,181,141,0.03)",
+    },
+
+    error: {
+      value:
+        COLORS.error,
+      border:
+        "rgba(201,123,116,0.14)",
+      background:
+        "rgba(201,123,116,0.03)",
+    },
+
+    neutral: {
+      value:
+        COLORS.accent,
+      border:
+        COLORS.border,
+      background:
+        "rgba(255,255,255,0.018)",
+    },
+  }[tone];
+
+  return (
+    <div
+      style={{
+        minHeight: 58,
+        display: "flex",
+        alignItems:
+          "center",
+        justifyContent:
+          "space-between",
+        gap: 12,
+        padding:
+          "10px 13px",
+        borderRadius: 12,
+        border:
+          `1px solid ${palette.border}`,
+        background:
+          palette.background,
+      }}
+    >
+      <div>
+        <div
+          style={{
+            color:
+              COLORS.subtle,
+            fontSize: 8,
+            fontWeight: 700,
+            letterSpacing:
+              "0.04em",
+            textTransform:
+              "uppercase",
+          }}
+        >
+          {label}
+        </div>
+
+        <strong
+          style={{
+            display: "block",
+            marginTop: 4,
+            color:
+              palette.value,
+            fontSize: 11,
+          }}
+        >
+          {value}
+        </strong>
+      </div>
+
+      <span
+        style={{
+          maxWidth: 150,
+          color:
+            COLORS.subtle,
+          fontSize: 8,
+          lineHeight: 1.45,
+          textAlign: "right",
+        }}
+      >
+        {detail}
+      </span>
     </div>
   );
 }
@@ -709,27 +822,46 @@ export default function Settings() {
 
 function SectionTitle({
   children,
+  detail,
 }: {
-  children:
-    React.ReactNode;
+  children: ReactNode;
+  detail: string;
 }) {
   return (
     <div
       style={{
+        display: "flex",
+        justifyContent:
+          "space-between",
+        alignItems:
+          "center",
+        gap: 12,
         marginBottom: 10,
-
-        color:
-          COLORS.subtle,
-
-        fontSize: 10,
-
-        fontWeight: 800,
-
-        letterSpacing:
-          "0.14em",
+        flexWrap: "wrap",
       }}
     >
-      {children}
+      <div
+        style={{
+          color:
+            COLORS.subtle,
+          fontSize: 10,
+          fontWeight: 800,
+          letterSpacing:
+            "0.13em",
+        }}
+      >
+        {children}
+      </div>
+
+      <span
+        style={{
+          color:
+            COLORS.subtle,
+          fontSize: 9,
+        }}
+      >
+        {detail}
+      </span>
     </div>
   );
 }
@@ -745,70 +877,86 @@ function StatusCard({
   value,
   description,
   status,
+  statusText,
 }: {
-  icon:
-    React.ReactNode;
-
+  icon: ReactNode;
   label: string;
-
   value: string;
-
   description: string;
-
   status:
-    BackendState;
+    IntegrationState;
+  statusText: string;
 }) {
-  const healthy =
-    status === "online";
-
+  const tone =
+    status === "online"
+      ? {
+          color:
+            COLORS.success,
+          border:
+            "rgba(167,187,134,0.14)",
+          background:
+            "rgba(167,187,134,0.035)",
+        }
+      : status === "offline"
+        ? {
+            color:
+              COLORS.error,
+            border:
+              "rgba(201,123,116,0.16)",
+            background:
+              "rgba(201,123,116,0.035)",
+          }
+        : status === "checking"
+          ? {
+              color:
+                COLORS.warning,
+              border:
+                "rgba(199,181,141,0.14)",
+              background:
+                "rgba(199,181,141,0.03)",
+            }
+          : {
+              color:
+                COLORS.gold,
+              border:
+                COLORS.border,
+              background:
+                COLORS.surface,
+            };
 
   return (
     <div
       style={{
-        minHeight: 145,
-
-        padding: 18,
-
+        minHeight: 155,
+        padding: 17,
         borderRadius: 15,
-
         border:
-          `1px solid ${COLORS.border}`,
-
+          `1px solid ${tone.border}`,
         background:
-          COLORS.surface,
+          tone.background,
       }}
     >
       <div
         style={{
           display: "flex",
-
           justifyContent:
             "space-between",
-
           alignItems:
             "flex-start",
-
           gap: 12,
         }}
       >
         <div
           style={{
             width: 35,
-
             height: 35,
-
             display: "grid",
-
             placeItems:
               "center",
-
             flexShrink: 0,
-
             borderRadius: 10,
-
             background:
               "rgba(229,220,199,0.045)",
-
             color:
               COLORS.accent,
           }}
@@ -817,39 +965,57 @@ function StatusCard({
         </div>
 
 
-        {status ===
-        "checking" ? (
-          <RefreshCw
-            size={14}
-            color={
-              COLORS.warning
-            }
-          />
-        ) : healthy ? (
-          <CheckCircle2
-            size={14}
-            color={
-              COLORS.success
-            }
-          />
-        ) : (
-          <AlertTriangle
-            size={14}
-            color={
-              COLORS.error
-            }
-          />
-        )}
+        <span
+          style={{
+            display:
+              "inline-flex",
+            alignItems:
+              "center",
+            gap: 5,
+            padding:
+              "4px 7px",
+            borderRadius: 999,
+            border:
+              `1px solid ${tone.color}2A`,
+            color:
+              tone.color,
+            fontSize: 7,
+            fontWeight: 800,
+            letterSpacing:
+              "0.06em",
+          }}
+        >
+          {status ===
+          "checking" ? (
+            <RefreshCw
+              size={10}
+            />
+          ) : status ===
+            "offline" ? (
+            <AlertTriangle
+              size={10}
+            />
+          ) : status ===
+            "online" ? (
+            <CheckCircle2
+              size={10}
+            />
+          ) : (
+            <ShieldCheck
+              size={10}
+            />
+          )}
+
+          {statusText}
+        </span>
       </div>
 
 
       <div
         style={{
-          marginTop: 15,
-
+          marginTop: 14,
           color:
             COLORS.subtle,
-
           fontSize: 9,
         }}
       >
@@ -860,17 +1026,15 @@ function StatusCard({
       <strong
         style={{
           display: "block",
-
           marginTop: 5,
-
           color:
-            healthy
-              ? COLORS.text
+            status ===
+            "offline"
+              ? COLORS.error
               : status ===
                   "checking"
                 ? COLORS.warning
-                : COLORS.error,
-
+                : COLORS.text,
           fontSize: 12,
         }}
       >
@@ -881,14 +1045,10 @@ function StatusCard({
       <div
         style={{
           marginTop: 7,
-
           color:
             COLORS.subtle,
-
           fontSize: 9,
-
           lineHeight: 1.55,
-
           wordBreak:
             "break-word",
         }}
@@ -906,40 +1066,54 @@ function StatusCard({
 
 function BoundaryItem({
   children,
+  mode,
 }: {
-  children:
-    React.ReactNode;
+  children: ReactNode;
+  mode:
+    | "allowed"
+    | "blocked";
 }) {
+  const color =
+    mode ===
+    "allowed"
+      ? COLORS.success
+      : COLORS.error;
+
   return (
     <div
       style={{
         display: "flex",
-
         alignItems:
           "center",
-
         gap: 8,
-
         padding:
           "10px 11px",
-
         borderRadius: 9,
-
         border:
-          `1px solid ${COLORS.borderSoft}`,
-
+          `1px solid ${color}1F`,
+        background:
+          `${color}08`,
         color:
           COLORS.muted,
-
         fontSize: 10,
       }}
     >
-      <ShieldCheck
-        size={13}
-        color={
-          COLORS.success
-        }
-      />
+      {mode ===
+      "allowed" ? (
+        <CheckCircle2
+          size={13}
+          color={
+            color
+          }
+        />
+      ) : (
+        <ShieldCheck
+          size={13}
+          color={
+            color
+          }
+        />
+      )}
 
       {children}
     </div>
@@ -955,34 +1129,33 @@ function ExecutionStep({
   number,
   title,
   detail,
+  highlighted = false,
 }: {
   number: string;
-
   title: string;
-
   detail: string;
+  highlighted?: boolean;
 }) {
   return (
     <div
       style={{
         padding: 16,
-
         borderRadius: 14,
-
         border:
-          `1px solid ${COLORS.border}`,
-
+          highlighted
+            ? "1px solid rgba(147,134,106,0.18)"
+            : `1px solid ${COLORS.border}`,
         background:
-          COLORS.surface,
+          highlighted
+            ? "rgba(147,134,106,0.045)"
+            : COLORS.surface,
       }}
     >
       <span
         style={{
           color:
             COLORS.gold,
-
           fontSize: 9,
-
           fontWeight: 800,
         }}
       >
@@ -993,12 +1166,11 @@ function ExecutionStep({
       <strong
         style={{
           display: "block",
-
           marginTop: 10,
-
           color:
-            COLORS.text,
-
+            highlighted
+              ? COLORS.accent
+              : COLORS.text,
           fontSize: 12,
         }}
       >
@@ -1009,12 +1181,9 @@ function ExecutionStep({
       <div
         style={{
           marginTop: 5,
-
           color:
             COLORS.subtle,
-
           fontSize: 9,
-
           lineHeight: 1.5,
         }}
       >

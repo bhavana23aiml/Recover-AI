@@ -5,7 +5,48 @@ from main import app
 from services import ai_reasoner
 
 
+import pytest
+
+from fastapi.testclient import TestClient
+
+from core.auth import (
+    AuthenticatedUser,
+    get_current_user,
+)
+
+from main import app
+
+from services import ai_reasoner
+
+
 client = TestClient(app)
+
+
+# =========================================================
+# TEST AUTHENTICATION
+# =========================================================
+
+def override_current_user() -> AuthenticatedUser:
+    return AuthenticatedUser(
+        id="recoverai-ai-test-user",
+        email="ai-test@recoverai.local",
+        user_metadata={},
+        app_metadata={},
+    )
+
+
+@pytest.fixture(autouse=True)
+def authenticated_ai_user():
+    app.dependency_overrides[
+        get_current_user
+    ] = override_current_user
+
+    yield
+
+    app.dependency_overrides.pop(
+        get_current_user,
+        None,
+    )
 
 
 # =========================================================

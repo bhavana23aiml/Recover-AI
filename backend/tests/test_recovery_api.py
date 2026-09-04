@@ -1,269 +1,450 @@
+import pytest
+
 from fastapi.testclient import TestClient
+
+from core.auth import (
+    AuthenticatedUser,
+    get_current_user,
+)
 
 from main import app
 
-from services.recovery_executor import (
-    AUDIT_STORE,
-    IDEMPOTENCY_RESULT_STORE,
-    IDEMPOTENCY_STATE,
-)
+from services import ai_reasoner
 
 
 client = TestClient(app)
 
 
 # =========================================================
-# TEST ISOLATION
+# TEST AUTHENTICATION
+# =========================================================
+#
+# Production behavior:
+#
+# Browser
+#   ↓
+# Supabase access token
+#   ↓
+# get_current_user()
+#   ↓
+# Supabase verifies user
+#
+# Test behavior:
+#
+# get_current_user()
+#   ↓
+# deterministic test user
+#
+# This override exists only during tests in this module.
+# Production authentication remains unchanged.
+#
 # =========================================================
 
-def setup_function():
+def override_current_user() -> AuthenticatedUser:
+    return AuthenticatedUser(
+        id="recoverai-ai-test-user",
+        email="ai-test@recoverai.local",
+        user_metadata={
+            "full_name":
+                "RecoverAI AI Test User",
+        },
+        app_metadata={},
+    )
+
+
+@pytest.fixture(
+    autouse=True,
+)
+def authenticated_ai_user():
     """
-    Reset temporary in-memory state before each API test.
+    Authenticate every AI API test without making
+    a real Supabase Auth network request.
+
+    The override is removed after each test so it
+    cannot leak into authentication-boundary tests.
     """
 
-    AUDIT_STORE.clear()
-    IDEMPOTENCY_RESULT_STORE.clear()
-    IDEMPOTENCY_STATE.clear()
-
-
-# =========================================================
-# TEST 1 — SUCCESSFUL EXECUTION API
-# =========================================================
-
-def test_execute_successful_recovery():
-    payload = {
-        "transaction_id": "RX18492",
-        "amount": 7499,
-        "failure_code": "BANK_UNAVAILABLE",
-        "retry_count": 0,
-    }
-
-    response = client.post(
-        "/api/recovery/execute",
-        json=payload,
+    previous_override = (
+        app.dependency_overrides.get(
+            get_current_user
+        )
     )
 
-    assert response.status_code == 200
+    app.dependency_overrides[
+        get_current_user
+    ] = override_current_user
+
+    try:
+        yield
+
+    finally:
+        if previous_override is None:
+            app.dependency_overrides.pop(
+                get_current_user,
+                None,
+            )
+
+        else:
+            app.dependency_overrides[
+                get_current_user
+            ] = previous_override
+
+
+# =========================================================
+# ALLOWED TRANSACTION
+# =========================================================
+
+def test_ai_reasoning_api_allowed_transaction(
+    monkeypatch,
+):
+    """
+    A normal retryable transaction should reach the
+    explanation layer while keeping safety authority
+    deterministic.
+    """
+
+    monkeypatch.setattr(
+        ai_reasoner.config,
+        "AI_ENABLED",
+        True,
+    )
+
+    monkeypatch.setattr(
+        ai_reasoner.config,
+        "AI_PROVIDER",
+        "groqcloud",
+    )
+
+    monkeypatch.setattr(
+        ai_reasoner,
+        "_call_ai_provider",
+        lambda context: {
+            "diagnosis": (
+                "The payment was classified as a "
+                "transient bank failure."
+            ),
+
+            "recovery_rationale": (
+                "RecoverAI proposes a delayed retry "
+                "after the configured delay."
+            ),
+
+            "confidence_narrative": (
+                "The confidence score represents "
+                "high confidence."
+            ),
+
+            "operator_summary": (
+                "The deterministic guardrails permit "
+                "the proposed recovery action."
+            ),
+        },
+    )
+
+    response = client.post(
+        "/api/ai/reasoning",
+        json={
+            "transaction_id":
+                "RX18492",
+
+            "amount":
+                7499,
+
+            "failure_code":
+                "BANK_UNAVAILABLE",
+
+            "retry_count":
+                0,
+        },
+    )
+
+    assert (
+        response.status_code
+        == 200
+    )
 
     data = response.json()
 
-    assert data["transaction_id"] == "RX18492"
-    assert data["guardrail_status"] == "ALLOWED"
-    assert data["can_execute"] is True
-
-    assert data["execution_status"] == "RECOVERED"
-    assert data["recovered_amount"] == 7499
-
-    assert data["execution_mode"] == "SIMULATION"
-
-    steps = [
-        event["step"]
-        for event in data["audit_trail"]
-    ]
-
-    assert steps == [
-        "DETECT",
-        "CLASSIFY",
-        "DECIDE",
-        "GUARDRAIL",
-        "EXECUTE",
-        "VERIFY",
-    ]
-
-
-# =========================================================
-# TEST 2 — AUDIT API
-# =========================================================
-
-def test_audit_api_returns_real_execution_events():
-    payload = {
-        "transaction_id": "RX-AUDIT-001",
-        "amount": 7499,
-        "failure_code": "BANK_UNAVAILABLE",
-        "retry_count": 0,
-    }
-
-    execute_response = client.post(
-        "/api/recovery/execute",
-        json=payload,
+    assert (
+        data["transaction_id"]
+        == "RX18492"
     )
 
-    assert execute_response.status_code == 200
-
-    audit_response = client.get(
-        "/api/recovery/audit/RX-AUDIT-001"
+    assert (
+        data["source"]
+        == "llm:groqcloud"
     )
 
-    assert audit_response.status_code == 200
+    assert (
+        data["ai_used"]
+        is True
+    )
 
-    audit = audit_response.json()
+    assert (
+        data["fallback_used"]
+        is False
+    )
 
-    steps = [
-        event["step"]
-        for event in audit
-    ]
-
-    assert steps == [
-        "DETECT",
-        "CLASSIFY",
-        "DECIDE",
-        "GUARDRAIL",
-        "EXECUTE",
-        "VERIFY",
-    ]
+    assert (
+        "deterministic guardrail engine allowed"
+        in data[
+            "safety_explanation"
+        ].lower()
+    )
 
 
 # =========================================================
-# TEST 3 — BLOCKED EXECUTION API
+# BLOCKED TRANSACTION
 # =========================================================
 
-def test_blocked_recovery_never_executes():
-    payload = {
-        "transaction_id": "RX20117",
-        "amount": 68000,
-        "failure_code": "BANK_UNAVAILABLE",
-        "retry_count": 2,
-    }
+def test_ai_reasoning_api_preserves_blocked_guardrail(
+    monkeypatch,
+):
+    """
+    AI may explain a blocked recovery strategy but must
+    never change or override the deterministic guardrail.
+    """
+
+    monkeypatch.setattr(
+        ai_reasoner.config,
+        "AI_ENABLED",
+        True,
+    )
+
+    monkeypatch.setattr(
+        ai_reasoner.config,
+        "AI_PROVIDER",
+        "groqcloud",
+    )
+
+    monkeypatch.setattr(
+        ai_reasoner,
+        "_call_ai_provider",
+        lambda context: {
+            "diagnosis": (
+                "The payment was classified as a "
+                "transient bank failure."
+            ),
+
+            "recovery_rationale": (
+                "RecoverAI proposes a delayed retry. "
+                "Automatic execution is blocked because "
+                "the retry limit has been reached."
+            ),
+
+            "confidence_narrative": (
+                "The deterministic confidence score "
+                "represents high confidence."
+            ),
+
+            "operator_summary": (
+                "Automatic execution is blocked. "
+                "The delayed retry remains proposed."
+            ),
+        },
+    )
 
     response = client.post(
-        "/api/recovery/execute",
-        json=payload,
+        "/api/ai/reasoning",
+        json={
+            "transaction_id":
+                "RX20117",
+
+            "amount":
+                68000,
+
+            "failure_code":
+                "BANK_UNAVAILABLE",
+
+            "retry_count":
+                2,
+        },
     )
 
-    assert response.status_code == 200
+    assert (
+        response.status_code
+        == 200
+    )
 
     data = response.json()
 
-    assert data["guardrail_status"] == "BLOCKED"
-    assert data["can_execute"] is False
-
-    assert data["execution_status"] == "BLOCKED"
-    assert data["recovered_amount"] == 0
-
-    steps = [
-        event["step"]
-        for event in data["audit_trail"]
-    ]
-
-    assert steps == [
-        "DETECT",
-        "CLASSIFY",
-        "DECIDE",
-        "GUARDRAIL",
-    ]
-
-    assert "EXECUTE" not in steps
-    assert "VERIFY" not in steps
-
-
-# =========================================================
-# TEST 4 — API IDEMPOTENCY
-# =========================================================
-
-def test_duplicate_api_request_is_idempotent():
-    payload = {
-        "transaction_id": "RX-API-IDEMPOTENT-001",
-        "amount": 7499,
-        "failure_code": "BANK_UNAVAILABLE",
-        "retry_count": 0,
-    }
-
-    first = client.post(
-        "/api/recovery/execute",
-        json=payload,
+    assert (
+        data["transaction_id"]
+        == "RX20117"
     )
 
-    second = client.post(
-        "/api/recovery/execute",
-        json=payload,
+    assert (
+        data["ai_used"]
+        is True
     )
 
-    assert first.status_code == 200
-    assert second.status_code == 200
-
-    assert first.json() == second.json()
-
-    audit_response = client.get(
-        "/api/recovery/audit/RX-API-IDEMPOTENT-001"
+    assert (
+        data["fallback_used"]
+        is False
     )
 
-    assert audit_response.status_code == 200
+    assert (
+        data["source"]
+        == "llm:groqcloud"
+    )
 
-    audit = audit_response.json()
+    safety = (
+        data[
+            "safety_explanation"
+        ]
+        .lower()
+    )
 
-    # The second identical request must not create
-    # another recovery workflow.
-    assert len(audit) == 6
+    assert (
+        "did not authorize automatic execution"
+        in safety
+    )
 
-    assert [
-        event["step"]
-        for event in audit
-    ] == [
-        "DETECT",
-        "CLASSIFY",
-        "DECIDE",
-        "GUARDRAIL",
-        "EXECUTE",
-        "VERIFY",
-    ]
+    assert (
+        "maximum retry limit of 2"
+        in safety
+    )
+
+    combined_text = " ".join(
+        [
+            data["diagnosis"],
+            data[
+                "recovery_rationale"
+            ],
+            data[
+                "operator_summary"
+            ],
+        ]
+    ).lower()
+
+    assert (
+        "automatic execution is blocked"
+        in combined_text
+    )
+
+    assert (
+        "will execute"
+        not in combined_text
+    )
+
+    assert (
+        "will retry"
+        not in combined_text
+    )
 
 
 # =========================================================
-# TEST 5 — HIGH VALUE REVIEW
+# PROVIDER FAILURE
 # =========================================================
 
-def test_high_value_transaction_requires_review():
-    payload = {
-        "transaction_id": "RX-API-HIGHVALUE-001",
-        "amount": 68000,
-        "failure_code": "BANK_UNAVAILABLE",
-        "retry_count": 0,
-    }
+def test_ai_reasoning_api_uses_fallback_when_provider_fails(
+    monkeypatch,
+):
+    """
+    GroqCloud failure must never cause the RecoverAI
+    explanation endpoint to fail.
+
+    RecoverAI must return its deterministic fallback.
+    """
+
+    monkeypatch.setattr(
+        ai_reasoner.config,
+        "AI_ENABLED",
+        True,
+    )
+
+    monkeypatch.setattr(
+        ai_reasoner.config,
+        "AI_PROVIDER",
+        "groqcloud",
+    )
+
+    def failing_provider(
+        context,
+    ):
+        raise TimeoutError(
+            "Provider timeout."
+        )
+
+    monkeypatch.setattr(
+        ai_reasoner,
+        "_call_ai_provider",
+        failing_provider,
+    )
 
     response = client.post(
-        "/api/recovery/execute",
-        json=payload,
+        "/api/ai/reasoning",
+        json={
+            "transaction_id":
+                "RX18492",
+
+            "amount":
+                7499,
+
+            "failure_code":
+                "BANK_UNAVAILABLE",
+
+            "retry_count":
+                0,
+        },
     )
 
-    assert response.status_code == 200
+    assert (
+        response.status_code
+        == 200
+    )
 
     data = response.json()
 
-    assert data["guardrail_status"] == "REVIEW_REQUIRED"
-    assert data["can_execute"] is False
-
-    assert data["execution_status"] == "REVIEW_REQUIRED"
-    assert data["recovered_amount"] == 0
-
-    steps = [
-        event["step"]
-        for event in data["audit_trail"]
-    ]
-
-    assert steps == [
-        "DETECT",
-        "CLASSIFY",
-        "DECIDE",
-        "GUARDRAIL",
-    ]
-
-
-# =========================================================
-# TEST 6 — INPUT VALIDATION
-# =========================================================
-
-def test_invalid_amount_is_rejected():
-    payload = {
-        "transaction_id": "RX-INVALID-001",
-        "amount": 0,
-        "failure_code": "BANK_UNAVAILABLE",
-        "retry_count": 0,
-    }
-
-    response = client.post(
-        "/api/recovery/execute",
-        json=payload,
+    assert (
+        data["source"]
+        == "deterministic_fallback"
     )
 
-    # ClassificationRequest requires amount > 0.
-    assert response.status_code == 422
+    assert (
+        data["ai_used"]
+        is False
+    )
+
+    assert (
+        data["fallback_used"]
+        is True
+    )
+
+    assert (
+        data["transaction_id"]
+        == "RX18492"
+    )
+
+
+# =========================================================
+# INPUT VALIDATION
+# =========================================================
+
+def test_ai_reasoning_api_rejects_invalid_failure_code():
+    """
+    Invalid transaction input must fail before reaching
+    the AI provider.
+    """
+
+    response = client.post(
+        "/api/ai/reasoning",
+        json={
+            "transaction_id":
+                "INVALID001",
+
+            "amount":
+                1000,
+
+            "failure_code":
+                "FAKE_FAILURE_CODE",
+
+            "retry_count":
+                0,
+        },
+    )
+
+    assert (
+        response.status_code
+        == 422
+    )

@@ -1,12 +1,18 @@
-from __future__ import annotations
+
 
 import json
 
 from fastapi import (
     APIRouter,
+    Depends,
     HTTPException,
     Request,
     status,
+)
+
+from core.auth import (
+    AuthenticatedUser,
+    get_current_user,
 )
 
 from schemas.razorpay import (
@@ -64,6 +70,9 @@ router = APIRouter(
 )
 def create_recovery_order(
     request: RazorpayRecoveryOrderRequest,
+    _current_user: AuthenticatedUser = Depends(
+        get_current_user,
+    ),
 ) -> RazorpayRecoveryOrderResponse:
     """
     Create or reuse a Razorpay Test Mode order for a
@@ -305,6 +314,9 @@ def create_recovery_order(
 )
 def verify_recovery_payment(
     request: RazorpayVerifyPaymentRequest,
+    _current_user: AuthenticatedUser = Depends(
+        get_current_user,
+    ),
 ) -> RazorpayVerifyPaymentResponse:
     """
     Verify Razorpay Checkout success.
@@ -670,6 +682,9 @@ def verify_recovery_payment(
 )
 def reconcile_recovery_payment(
     request: RazorpayReconcilePaymentRequest,
+    _current_user: AuthenticatedUser = Depends(
+        get_current_user,
+    ),
 ) -> RazorpayReconcilePaymentResponse:
     """
     Recover gateway truth when browser verification

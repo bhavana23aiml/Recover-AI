@@ -1,6 +1,17 @@
-from fastapi import APIRouter
+from fastapi import (
+    APIRouter,
+    Depends,
+)
 
-from schemas.ai import AIReasoningResult
+from core.auth import (
+    AuthenticatedUser,
+    get_current_user,
+)
+
+from schemas.ai import (
+    AIReasoningResult,
+)
+
 from schemas.transaction import (
     ClassificationRequest,
 )
@@ -31,6 +42,22 @@ router = APIRouter(
 # =========================================================
 # AI REASONING
 # =========================================================
+#
+# AUTHENTICATED ENDPOINT
+#
+# Requires:
+#
+# Authorization: Bearer <Supabase access token>
+#
+# IMPORTANT:
+#
+# Authentication controls access to this endpoint.
+#
+# It does NOT change AI authority.
+#
+# AI remains explanation-only.
+#
+# =========================================================
 
 @router.post(
     "/reasoning",
@@ -38,10 +65,17 @@ router = APIRouter(
 )
 def explain_recovery_decision(
     request: ClassificationRequest,
+
+    _current_user: AuthenticatedUser = Depends(
+        get_current_user,
+    ),
 ) -> AIReasoningResult:
     """
-    Generate an explanation for a RecoverAI recovery
-    decision.
+    Generate an explanation for an existing deterministic
+    RecoverAI recovery decision.
+
+    Authentication:
+        A valid Supabase authenticated user is required.
 
     IMPORTANT:
 
@@ -56,9 +90,12 @@ def explain_recovery_decision(
     - modify guardrails
     - bypass retry limits
     - mark a payment successful
+    - mark revenue recovered
 
     Flow:
 
+        authenticated user
+                ↓
         ClassificationRequest
                 ↓
         deterministic recovery decision
@@ -69,35 +106,38 @@ def explain_recovery_decision(
                 ↓
         AIReasoningResult
 
-    If the AI provider fails, RecoverAI automatically
-    returns its deterministic fallback explanation.
+    If the AI provider fails, RecoverAI returns the
+    deterministic fallback explanation.
     """
 
-    # -----------------------------------------------------
+    # =====================================================
     # 1. DETERMINISTIC RECOVERY DECISION
-    # -----------------------------------------------------
+    # =====================================================
 
     recovery = create_recovery_decision(
         request
     )
 
-    # -----------------------------------------------------
+
+    # =====================================================
     # 2. DETERMINISTIC GUARDRAILS
-    # -----------------------------------------------------
+    # =====================================================
 
     guardrail = evaluate_guardrails(
         request=request,
         recovery=recovery,
     )
 
-    # -----------------------------------------------------
-    # 3. EXPLANATION-ONLY AI LAYER
-    # -----------------------------------------------------
+
+    # =====================================================
+    # 3. EXPLANATION-ONLY AI
+    # =====================================================
 
     reasoning = generate_reasoning(
         request=request,
         decision=recovery,
         guardrail=guardrail,
     )
+
 
     return reasoning

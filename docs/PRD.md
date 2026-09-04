@@ -2,14 +2,14 @@
 
 ## 1. Document Information
 
-**Product:** RecoverAI  
-**Full Name:** RecoverAI — Intelligent AI-Powered Revenue Recovery Agent  
-**Track:** AI Revenue Recovery  
-**Document Type:** Product Requirements Document  
-**Status:** Active  
-**Version:** 1.1  
-**Last Updated:** 2026-08-23  
-**Owner:** Buildathon team (product/eng — see README for contact)  
+**Product:** RecoverAI
+**Full Name:** RecoverAI — Intelligent AI-Powered Revenue Recovery Agent
+**Track:** AI Revenue Recovery
+**Document Type:** Product Requirements Document
+**Status:** Active
+**Version:** 1.2
+**Last Updated:** 2026-09-04
+**Owner:** Buildathon team (product/eng — see README for contact)
 **Primary Environment:** Buildathon / Razorpay Test Environment
 
 **Requirement ID convention:** Functional requirements are tagged `FR-XX`. Each carries a priority (`P0` / `P1` / `P2`, matching Section 68's scope tiers) so an individual requirement — not just a whole feature bucket — can be triaged under time pressure. Test cases in Sections 62–64 reference these IDs.
@@ -79,6 +79,7 @@ Limited explanation              Explainable decisions
 One-size-fits-all                Confidence-gated decisions
 Retry focused                    Retry / remind / review / stop
 Gateway-level visibility         Cross-transaction intelligence
+
 ```
 
 RecoverAI's differentiated value is:
@@ -210,6 +211,7 @@ US-01  As a finance lead, I want to see total revenue at risk and revenue
 US-02  As a finance lead, I want simulated figures clearly labeled as
        simulation, so I never mistake a demo number for real revenue.
        → FR-23, FR-52
+
 ```
 
 ## Payments Operations Analyst
@@ -229,6 +231,7 @@ US-05  As an ops analyst, I want a queue I can filter by status and
        confidence, so I can prioritize the manual-review cases that
        actually need my attention.
        → FR-34
+
 ```
 
 ## Engineering / Risk Reviewer
@@ -243,6 +246,7 @@ US-07  As a risk reviewer, I want every recovery execution tied to an
        idempotency key, so a retried request can never double-charge
        or double-retry a customer.
        → FR-39
+
 ```
 
 ---
@@ -269,6 +273,7 @@ VERIFY
 AUDIT
       ↓
 MEASURE RECOVERED REVENUE
+
 ```
 
 This is the central product journey.
@@ -297,6 +302,7 @@ transaction_id
 amount
 failure_code
 retry_count
+
 ```
 
 Optional future fields:
@@ -308,6 +314,7 @@ currency
 payment_method
 timestamp
 metadata
+
 ```
 
 ---
@@ -327,6 +334,7 @@ MANDATE_FAILURE
 CUSTOMER_ABANDONED
 ISSUER_DECLINED
 UNKNOWN_ERROR
+
 ```
 
 The classifier must produce:
@@ -339,13 +347,14 @@ Recommended Action
 Retry Delay
 Confidence Score
 Explanation
+
 ```
 
 ---
 
 # 14. Initial Classification Rules
 
-## BANK_UNAVAILABLE
+## BANK\_UNAVAILABLE
 
 ```text
 Category:
@@ -359,11 +368,12 @@ DELAYED_RETRY
 
 Retry Delay:
 30 minutes
+
 ```
 
 ---
 
-## NETWORK_ERROR
+## NETWORK\_ERROR
 
 ```text
 Category:
@@ -374,11 +384,12 @@ Yes
 
 Recommended Action:
 SHORT_RETRY
+
 ```
 
 ---
 
-## PAYMENT_TIMEOUT
+## PAYMENT\_TIMEOUT
 
 ```text
 Category:
@@ -386,11 +397,12 @@ TRANSIENT_TIMEOUT
 
 Recommended Action:
 VERIFY_THEN_RETRY
+
 ```
 
 ---
 
-## INSUFFICIENT_FUNDS
+## INSUFFICIENT\_FUNDS
 
 ```text
 Category:
@@ -398,11 +410,12 @@ CUSTOMER_FUNDS
 
 Recommended Action:
 CUSTOMER_REMINDER
+
 ```
 
 ---
 
-## MANDATE_FAILURE
+## MANDATE\_FAILURE
 
 ```text
 Category:
@@ -410,11 +423,12 @@ AUTHORIZATION_FAILURE
 
 Recommended Action:
 REQUEST_NEW_PAYMENT_METHOD
+
 ```
 
 ---
 
-## CUSTOMER_ABANDONED
+## CUSTOMER\_ABANDONED
 
 ```text
 Category:
@@ -422,11 +436,12 @@ CHECKOUT_ABANDONMENT
 
 Recommended Action:
 SEND_CHECKOUT_REMINDER
+
 ```
 
 ---
 
-## ISSUER_DECLINED
+## ISSUER\_DECLINED
 
 ```text
 Category:
@@ -434,11 +449,12 @@ HARD_DECLINE
 
 Recommended Action:
 ALTERNATIVE_PAYMENT_METHOD
+
 ```
 
 ---
 
-## UNKNOWN_ERROR
+## UNKNOWN\_ERROR
 
 ```text
 Category:
@@ -446,6 +462,7 @@ UNKNOWN
 
 Recommended Action:
 MANUAL_REVIEW
+
 ```
 
 ---
@@ -466,6 +483,7 @@ REQUEST_NEW_PAYMENT_METHOD
 ALTERNATIVE_PAYMENT_METHOD
 MANUAL_REVIEW
 STOP
+
 ```
 
 A recovery decision must contain:
@@ -481,6 +499,7 @@ retryable
 retry_delay_minutes
 confidence
 reason
+
 ```
 
 ---
@@ -494,6 +513,7 @@ RETRY_SCHEDULED
 CUSTOMER_ACTION_REQUIRED
 MANUAL_REVIEW
 STOPPED
+
 ```
 
 Target recovery job states:
@@ -511,6 +531,7 @@ BLOCKED
 REVIEW_REQUIRED
 APPROVED
 REJECTED
+
 ```
 
 The exact state machine is defined in `architecture.md`.
@@ -555,6 +576,7 @@ DUPLICATE_WINDOW_SECONDS          = 30
 MAX_RECOVERABLE_AMOUNT_AUTO       = ₹50,000
 
 STOP_ON_CONSECUTIVE_FAILURES      = 2
+
 ```
 
 These values must eventually live in configuration rather than being duplicated as magic constants throughout the application. See **RISK-03** in Section 73 — these are defaults, not validated business figures.
@@ -579,6 +601,7 @@ AND
 no duplicate recovery exists
 AND
 no stop condition exists
+
 ```
 
 ---
@@ -589,12 +612,14 @@ Require manual review when:
 
 ```text
 0.50 <= confidence < 0.80
+
 ```
 
 or when:
 
 ```text
 amount > ₹50,000
+
 ```
 
 unless another stronger blocking condition exists.
@@ -607,6 +632,7 @@ Stop automated recovery when:
 
 ```text
 confidence < 0.50
+
 ```
 
 or when no safe recovery strategy exists.
@@ -619,6 +645,7 @@ Block further retry when:
 
 ```text
 retry_count >= 2
+
 ```
 
 ---
@@ -631,12 +658,14 @@ Possible statuses:
 ALLOWED
 BLOCKED
 REVIEW_REQUIRED
+
 ```
 
 The executor must never proceed when:
 
 ```text
 can_execute = false
+
 ```
 
 ---
@@ -660,6 +689,7 @@ Confidence:
 
 Retry Count:
 0 / 2
+
 ```
 
 Guardrail:
@@ -672,6 +702,7 @@ Stop Condition          False     ✓
 
 STATUS:
 ALLOWED
+
 ```
 
 The recovery workflow may continue.
@@ -696,6 +727,7 @@ BANK_UNAVAILABLE
 
 Retry Count:
 2 / 2
+
 ```
 
 Expected result:
@@ -708,6 +740,7 @@ Amount                    ₹68,000    ✗
 GUARDRAIL STATUS:
 
 BLOCKED
+
 ```
 
 The system must not perform a third silent retry.
@@ -734,27 +767,34 @@ The decision and blocking reason must be recorded in the audit trail.
 
 # 24. Buildathon Execution Mode
 
-**FR-12 (P0)** — Initial execution mode:
+**FR-12 (P0)** — RecoverAI must make the active execution context explicit.
+
+Current Buildathon execution contexts are:
 
 ```text
 SIMULATION
+RAZORPAY_TEST
 ```
 
-The UI must visibly label simulation-mode results.
+`SIMULATION` is used for deterministic recovery-flow demonstration.
 
-Example:
+`RAZORPAY_TEST` is used for the isolated Razorpay Test Mode integration.
+
+The UI must visibly label whichever non-production context is active.
+
+Examples:
 
 ```text
 SIMULATION MODE
-```
-
-or:
-
-```text
+RAZORPAY TEST MODE
 TEST ENVIRONMENT
 ```
 
+Neither simulation nor Razorpay Test Mode may be presented as production merchant payment processing.
+
 Simulated recovery outcomes must not be presented as real recovered merchant revenue.
+
+A successful Razorpay Test Mode payment proves the gateway integration in a test environment; it does not prove production merchant revenue recovery.
 
 ---
 
@@ -785,6 +825,7 @@ EXECUTE
 VERIFY
    ↓
 FINAL STATUS
+
 ```
 
 Verification must determine whether payment was truly recovered.
@@ -798,6 +839,7 @@ PENDING
 ACTION_COMPLETED
 BLOCKED
 REVIEW_REQUIRED
+
 ```
 
 ---
@@ -815,6 +857,7 @@ DECIDE
 GUARDRAIL
 EXECUTE
 VERIFY
+
 ```
 
 Additional possible events:
@@ -823,6 +866,7 @@ Additional possible events:
 ESCALATE
 STOP
 WEBHOOK_RECEIVED
+
 ```
 
 ---
@@ -838,6 +882,7 @@ Each audit event should contain:
   "message": "All RecoverAI safety checks passed.",
   "timestamp": "2026-08-23T10:32:17Z"
 }
+
 ```
 
 Audit events should ultimately be append-only. **FR-16 (P1)**.
@@ -862,6 +907,7 @@ GUARDRAIL
 EXECUTE
    ↓
 VERIFY
+
 ```
 
 For a blocked workflow, replay must stop at the appropriate step.
@@ -880,6 +926,7 @@ DECIDE
 
 GUARDRAIL
 ⛔ BLOCKED
+
 ```
 
 No fake `EXECUTE` or `VERIFY` step should appear if they did not happen.
@@ -913,6 +960,7 @@ Guardrail Status
 
 Explanation / Reason
 Audit Trail
+
 ```
 
 The drawer should make the decision understandable to an operations user. Serves **US-03**.
@@ -921,13 +969,30 @@ The drawer should make the decision understandable to an operations user. Serves
 
 # 31. Functional Requirement — AI Reasoning Layer
 
-**FR-17 (P1)** — AI should assist with:
+**FR-17 (P1)** — RecoverAI provides an implemented explanation-only AI layer.
+
+The AI layer may assist with:
 
 - Human-readable failure explanation
 - Recovery reasoning summary
 - Operator-facing explanation
 - Context summarization
 - Confidence narrative
+- Deterministic safety explanation grounded in the current guardrail state
+
+The current provider integration uses GroqCloud-compatible chat completion infrastructure.
+
+The deterministic RecoverAI services remain authoritative for:
+
+```text
+failure classification
+recovery action
+confidence values
+guardrail outcome
+execution permission
+verification
+payment success state
+```
 
 AI is not the financial authority.
 
@@ -935,25 +1000,30 @@ AI may **not**:
 
 - Override guardrails
 - Ignore retry limits
+- Change deterministic classification
+- Change the selected recovery action
 - Bypass verification
 - Mark a payment as successful
 - Execute privileged payment operations independently
+- Claim revenue was recovered without verified payment state
 
 ---
 
 # 32. AI Fallback Requirement
 
-**FR-18 (P1)** — If the AI provider is unavailable:
+**FR-18 (P1)** — If the AI provider is unavailable or its response is unusable:
 
 ```text
-AI unavailable
+AI provider unavailable / invalid
       ↓
-Use deterministic explanation
+Use deterministic fallback explanation
       ↓
 Continue core recovery workflow
 ```
 
 The core recovery pipeline must remain usable without an LLM.
+
+Provider failure must not weaken payment safety or change the deterministic decision.
 
 ---
 
@@ -970,6 +1040,7 @@ Recovery Rate
 Active Recoveries
 Failed Payments
 Recovered Today
+
 ```
 
 Secondary metrics may include:
@@ -979,6 +1050,7 @@ Successful Retries
 Manual Reviews
 Guardrail Blocks
 Average Recovery Time
+
 ```
 
 The Command Center requirements are consistent with the project overview.
@@ -991,6 +1063,7 @@ The Command Center requirements are consistent with the project overview.
 
 ```text
 SUM(amount of recoverable failed payments)
+
 ```
 
 **FR-33 (P0)**
@@ -1001,6 +1074,7 @@ SUM(amount of recoverable failed payments)
 
 ```text
 SUM(recovered_amount)
+
 ```
 
 **FR-33 (P0)**
@@ -1013,6 +1087,7 @@ SUM(recovered_amount)
 Revenue Recovered
 ────────────────── × 100
 Revenue at Risk
+
 ```
 
 **FR-33 (P0)**
@@ -1040,6 +1115,7 @@ Failure Reason
 Agent Action
 Confidence
 Status
+
 ```
 
 Users should be able to click a row to inspect the decision.
@@ -1080,6 +1156,7 @@ Retry executed
 Verification completed
 
 Revenue recovered
+
 ```
 
 ---
@@ -1094,6 +1171,7 @@ FastAPI
 Server-Sent Events
    ↓
 React Dashboard
+
 ```
 
 The frontend should update when:
@@ -1109,52 +1187,76 @@ The project overview identifies SSE-based live dashboard updates as a planned ca
 
 # 38. Functional Requirement — Razorpay Integration
 
-**FR-21 (P1)** — RecoverAI should integrate with:
+**FR-21 (P1)** — RecoverAI integrates with:
 
 ```text
 Razorpay Test Mode
 ```
 
-The integration layer should support:
+Current implemented browser-facing Razorpay operations include:
 
-- Test payment operations
-- Reading payment status
-- Verifying payment result
-- Handling test failures
-- Receiving payment webhooks
+```text
+POST /api/razorpay/recovery-order
+POST /api/razorpay/verify-payment
+POST /api/razorpay/reconcile-payment
+```
 
-Sensitive credentials must remain backend-only. **FR-56 (P0)**.
+The integration supports:
+
+- Creating or reusing Test Mode recovery orders from trusted backend state
+- Reading Test Mode payment/order state
+- Server-side payment verification
+- Independent reconciliation when normal browser verification is incomplete
+- Persisting gateway-linked recovery state
+- Receiving signed Razorpay webhooks
+- Synchronizing verified captured payment state
+
+The frontend must not decide trusted amount, currency, guardrail status, or payment success.
+
+The browser-facing Razorpay endpoints require RecoverAI user authentication.
+
+Sensitive Razorpay credentials remain backend-only. **FR-56 (P0)**.
+
+Razorpay remains Test Mode only for the Buildathon.
 
 ---
 
 # 39. Razorpay Webhook Requirement
 
-**FR-38 (P1)** — Target flow:
+**FR-38 (P1)** — Implemented webhook trust flow:
 
 ```text
 Razorpay
    ↓
 POST /api/razorpay/webhook
    ↓
-Verify signature
+Verify X-Razorpay-Signature
    ↓
+Invalid?
+ YES → Reject
+   ↓ NO
 Check duplicate event
    ↓
-Map Razorpay event
+Map supported event
    ↓
-Trigger RecoverAI workflow
+Persist/link trusted gateway state
+   ↓
+Reuse RecoverAI safety/idempotency/verification rules
 ```
 
-Relevant events may include:
+The webhook is authenticated by Razorpay signature verification.
 
-```text
-payment.failed
-payment.authorized
-payment.captured
-refund.processed
-```
+It must **not** require a Supabase browser-user JWT.
 
-The project overview defines payment-failure webhooks as the intended entry path into the recovery pipeline.
+Supabase user authentication and Razorpay webhook authentication are separate trust boundaries.
+
+Current verified webhook behavior includes trusted `payment.captured` synchronization and persistence/linkage of the captured payment/order state.
+
+Other event mappings may be expanded only when implementation and tests support them.
+
+Invalid signatures must be rejected.
+
+Duplicate webhook delivery must not create duplicate financial execution.
 
 ---
 
@@ -1162,26 +1264,34 @@ The project overview defines payment-failure webhooks as the intended entry path
 
 **FR-39 (P0)** — RecoverAI must prevent duplicate recovery execution.
 
-Target mechanism:
+The required mechanism is durable idempotency for gateway-linked execution.
 
-```text
-Idempotency Key
-```
-
-Flow:
+Conceptual flow:
 
 ```text
 Recovery Request
       ↓
-Check idempotency key
+Resolve idempotency identity
       ↓
-Already processed?
+Look up persistent state/result
+      ↓
+Already completed?
    ↙             ↘
- YES             NO
- ↓                ↓
-Return old       Execute
-result           once
+ YES              NO
+ ↓                 ↓
+Return existing   Reserve state
+result            BEFORE execution
+                     ↓
+                  Execute once
+                     ↓
+                  Verify
+                     ↓
+                  Persist/finalize
 ```
+
+The same duplicate-safety principle applies to repeated browser requests, reconciliation, and webhook redelivery.
+
+Process-local stores may still be used in deterministic tests or simulation paths, but they must not be described as the durability mechanism for gateway-linked execution.
 
 Serves **US-07**.
 
@@ -1195,6 +1305,7 @@ Initial maximum:
 
 ```text
 2 retries
+
 ```
 
 Retry count must be visible to operators.
@@ -1204,28 +1315,46 @@ Example:
 ```text
 Retry Count
 1 / 2
+
 ```
 
 ---
 
 # 42. Data Persistence Requirements
 
-**FR-22 (P1)** — Target storage:
+**FR-22 (P1)** — RecoverAI uses:
 
 ```text
 Supabase
 PostgreSQL
 ```
 
-Core entities:
+for durable gateway/recovery-linked state.
+
+The current persistent path supports recovery/gateway state, idempotency, verification/reconciliation state, and audit-related persistence required around Razorpay Test Mode integration.
+
+Conceptual entities include:
 
 ```text
-merchants
 transactions
 recovery_jobs
 audit_events
-recovery_metrics
+gateway order/payment linkage
+idempotency state
 ```
+
+In-memory stores may remain in deterministic tests, simulation paths, or local fallback behavior, but must not be represented as crash-safe financial persistence.
+
+Future multi-merchant storage may introduce or fully enforce:
+
+```text
+merchants
+merchant_id
+merchant-scoped authorization
+tenant isolation
+```
+
+The presence of authentication or a `merchant_id` field alone does not prove tenant isolation.
 
 ---
 
@@ -1245,6 +1374,7 @@ failure_reason
 retry_count
 created_at
 updated_at
+
 ```
 
 Financial values should ultimately be stored in the gateway's smallest currency unit where appropriate.
@@ -1268,6 +1398,7 @@ recovered_amount
 idempotency_key
 created_at
 updated_at
+
 ```
 
 ---
@@ -1285,6 +1416,7 @@ status
 message
 metadata
 created_at
+
 ```
 
 Audit history should be append-only.
@@ -1293,31 +1425,56 @@ Audit history should be append-only.
 
 # 46. API Requirements
 
-Initial APIs:
+Current public application/system APIs:
 
 ```text
 GET  /
 GET  /health
+```
 
+Current protected browser-facing APIs:
+
+```text
 GET  /api/dashboard
 
 POST /api/classify-failure
 
 POST /api/recovery/decide
-
 POST /api/recovery/guardrails
-
 POST /api/recovery/execute
 
 GET  /api/recovery/audit/{transaction_id}
+
+POST /api/ai/reasoning
+
+POST /api/razorpay/recovery-order
+POST /api/razorpay/verify-payment
+POST /api/razorpay/reconcile-payment
 ```
 
-Target APIs:
+Protected browser requests use:
 
 ```text
-GET  /api/dashboard/stream
+Authorization: Bearer <Supabase access token>
+```
+
+and are validated by the backend authentication dependency.
+
+Razorpay webhook API:
+
+```text
 POST /api/razorpay/webhook
 ```
+
+The webhook uses Razorpay signature verification rather than a browser-user JWT.
+
+Optional/future API:
+
+```text
+GET /api/dashboard/stream
+```
+
+Breaking API changes must be coordinated with frontend code, tests, and canonical documentation.
 
 ---
 
@@ -1330,6 +1487,7 @@ Vite
 Motion for React
 Recharts
 Lucide React
+
 ```
 
 This stack is part of the established project architecture.
@@ -1343,6 +1501,7 @@ Python
 FastAPI
 Pydantic
 Uvicorn
+
 ```
 
 ---
@@ -1352,6 +1511,7 @@ Uvicorn
 ```text
 Supabase
 PostgreSQL
+
 ```
 
 ---
@@ -1361,6 +1521,7 @@ PostgreSQL
 ```text
 Razorpay Test Mode
 Razorpay Webhooks
+
 ```
 
 ---
@@ -1381,6 +1542,7 @@ Render / Railway
 Database
    ↓
 Supabase
+
 ```
 
 ---
@@ -1410,6 +1572,7 @@ Agent Replay
 Activity
 Guardrails
 Settings
+
 ```
 
 ---
@@ -1425,6 +1588,7 @@ AI EXPLANATION
 SIMULATION
 TEST ENVIRONMENT
 GUARDRAIL DECISION
+
 ```
 
 Simulated metrics must never visually imply actual merchant financial performance. Serves **US-02**.
@@ -1461,6 +1625,7 @@ Example:
 
 ```text
 RecoverAI is analyzing transactions...
+
 ```
 
 ---
@@ -1477,6 +1642,7 @@ Unable to load recovery data.
 The backend service is temporarily unavailable.
 
 [ Retry ]
+
 ```
 
 Stack traces must never appear in normal frontend UI.
@@ -1488,20 +1654,51 @@ Stack traces must never appear in normal frontend UI.
 **FR-56 (P0)** — RecoverAI must:
 
 - Keep Razorpay secrets backend-only
-- Keep Supabase private credentials backend-only
+- Keep Supabase private/service-role credentials backend-only
 - Keep AI provider keys backend-only
-- Never commit `.env`
-- Provide `.env.example`
-- Verify webhook signatures
+- Never commit secret-bearing `.env` files
+- Provide `.env.example` with placeholders when useful
+- Verify Razorpay webhook signatures
 - Validate incoming API payloads
 - Avoid logging secrets
 - Avoid storing raw payment credentials
+- Enforce authentication on protected browser-facing APIs
+- Keep Razorpay webhook authentication separate from browser-user authentication
+
+**FR-57 (P1 / implemented)** — Browser authentication uses:
+
+```text
+Supabase Auth
+      ↓
+Supabase access token
+      ↓
+Authorization: Bearer <JWT>
+      ↓
+FastAPI get_current_user
+      ↓
+Protected RecoverAI API
+```
+
+Missing or invalid browser authentication must be rejected for protected endpoints.
+
+Authentication establishes user identity and blocks anonymous access.
+
+It does **not** by itself provide:
+
+```text
+merchant-level authorization
+tenant isolation
+per-user merchant data scoping
+cross-merchant row isolation
+```
+
+RecoverAI must not claim multi-merchant isolation until those controls are explicitly implemented and tested.
 
 ---
 
 # 58. Secrets
 
-Expected environment variables:
+Backend environment variables include values such as:
 
 ```text
 RAZORPAY_KEY_ID=
@@ -1509,9 +1706,26 @@ RAZORPAY_KEY_SECRET=
 RAZORPAY_WEBHOOK_SECRET=
 
 SUPABASE_URL=
-SUPABASE_KEY=
+SUPABASE_SECRET_KEY=
 
-AI_API_KEY=
+GROQ_API_KEY=
+```
+
+Frontend configuration may contain only browser-safe/public values intended for client use, such as:
+
+```text
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+VITE_API_BASE_URL=
+```
+
+The frontend must never receive:
+
+```text
+Supabase service-role/private secret
+Razorpay key secret
+Razorpay webhook secret
+private AI-provider API key
 ```
 
 ---
@@ -1565,6 +1779,7 @@ Verification failed
 AI fallback activated
 Razorpay unavailable
 Database unavailable
+
 ```
 
 Never log:
@@ -1575,22 +1790,41 @@ Passwords
 CVV
 Full card numbers
 Sensitive payment credentials
+
 ```
 
 ---
 
 # 62. Testing Requirements
 
-Required test groups, each traced to the FR-IDs it verifies:
+Required test groups remain traceable to the requirements they protect:
 
 ```text
 Failure classifier     → FR-02
-Recovery engine         → FR-03
-Guardrails               → FR-04, FR-05, FR-06, FR-07, FR-08, FR-39
-Recovery executor         → FR-11, FR-12, FR-13, FR-14
-API                        → FR-46 (Section 46 endpoints)
-Webhooks                    → FR-38
+Recovery engine        → FR-03
+Guardrails             → FR-04, FR-05, FR-06, FR-07, FR-08, FR-39
+Recovery executor      → FR-11, FR-12, FR-13, FR-14
+API                     → Section 46 endpoint behavior
+AI reasoning            → FR-17, FR-18
+Razorpay Test Mode      → FR-21
+Webhooks                → FR-38
+Authentication          → FR-56, FR-57
+Persistence/idempotency → FR-22, FR-39
 ```
+
+As of **2026-09-04**, the verified backend regression result is:
+
+```text
+47 passed
+0 failed
+2 non-blocking Supabase client deprecation warnings
+```
+
+Authentication tests must verify anonymous requests are rejected from protected browser-facing APIs.
+
+Razorpay business tests may use a deterministic authenticated test-user dependency override so gateway/recovery behavior can be tested independently of live Supabase login.
+
+The Razorpay webhook must be tested through its own signature-verification boundary rather than expecting browser-authentication `401` behavior.
 
 ---
 
@@ -1607,6 +1841,7 @@ MANDATE_FAILURE
 CUSTOMER_ABANDONED
 ISSUER_DECLINED
 UNKNOWN_ERROR
+
 ```
 
 ---
@@ -1633,6 +1868,7 @@ Amount ₹75,000 → Manual Review
 Duplicate execution → Prevented
 
 Cooldown violation → Blocked
+
 ```
 
 A change to any value in Section 18 must add or update a test here before merge — this is the enforcement mechanism for **US-06**.
@@ -1657,6 +1893,7 @@ Manual-review workflow
 Customer-action workflow
 
 Repeated idempotency key
+
 ```
 
 ---
@@ -1683,6 +1920,7 @@ Execute
 Verify
         ↓
 ₹7,499 RECOVERED
+
 ```
 
 Dashboard Revenue Recovered should update.
@@ -1705,6 +1943,7 @@ Guardrail BLOCKED
 No execution
         ↓
 Manual review / audit
+
 ```
 
 This demonstrates that RecoverAI is designed to stop unsafe actions, not just maximize retries.
@@ -1719,43 +1958,29 @@ Listing a metric without a target makes it a display field, not a success criter
 
 ```text
 Metric                     Target (Buildathon demo)
-
 Revenue at Risk             Displayed, no target — informational
-
 Revenue Recovered            Displayed, no target — informational
-
 Recovery Rate                  ≥ 60% across demo transaction set
-
 Recovery Attempts               n/a — informational
-
 Successful Recoveries            At least 1 shown live in demo (Demo A)
-
 Guardrail Blocks                  At least 1 shown live in demo (Demo B)
-
 Manual Reviews                     Displayed, no target — informational
-
 Active Recoveries                   Displayed, no target — informational
+
 ```
 
 ## Technical Metrics
 
 ```text
 Metric                          Target (Buildathon demo)
-
 API error rate                    < 1% across demo run
-
 Recovery execution error rate       0% unhandled exceptions during demo
-
 AI fallback rate                     n/a — acceptable if AI unavailable, per FR-18
-
-Webhook processing latency            < 2s
-(Razorpay retry threshold, see architecture.md §28)
-
+Webhook processing latency            < 2s (Razorpay retry threshold, see architecture.md §28)
 Guardrail block rate                   No target — correctness matters, not rate
-
 Dashboard initial load                  < 2s on demo hardware/network
-
 Classification response time              < 500ms
+
 ```
 
 ---
@@ -1788,27 +2013,17 @@ The project will be considered demo-ready when:
 ## P0 — Must Have
 
 ```text
-Failure Classifier          (FR-02)
-
-Recovery Engine               (FR-03)
-
-Guardrail Engine                (FR-04–FR-07, FR-39)
-
-Recovery Executor                 (FR-11–FR-14)
-
-Audit Trail                        (FR-15)
-
-Dashboard                            (FR-32–FR-34)
-
-Transaction Queue                      (FR-34)
-
-Decision Details                         (FR-29)
-
-Agent Replay                               (FR-28)
-
-Simulation Mode                              (FR-12, FR-23)
-
-Core Tests                                     (FR-04–FR-14 coverage)
+Failure Classifier             (FR-02)
+Recovery Engine                (FR-03)
+Guardrail Engine               (FR-04–FR-07, FR-39)
+Recovery Executor              (FR-11–FR-14)
+Audit Trail                    (FR-15)
+Dashboard                      (FR-32–FR-34)
+Transaction Queue              (FR-34)
+Decision Details               (FR-29)
+Agent Replay                   (FR-28)
+Simulation Mode                (FR-12, FR-23)
+Core Safety Tests              (FR-04–FR-14 coverage)
 ```
 
 ---
@@ -1816,120 +2031,165 @@ Core Tests                                     (FR-04–FR-14 coverage)
 ## P1 — Strong Buildathon Features
 
 ```text
-Supabase persistence      (FR-22)
+Supabase persistence           (FR-22)          IMPLEMENTED
+Razorpay Test Mode             (FR-21)          IMPLEMENTED
+Razorpay webhook               (FR-38)          IMPLEMENTED
+AI explanation layer           (FR-17, FR-18)   IMPLEMENTED
+Authentication                 (FR-57)          IMPLEMENTED
+Charts                                           IMPLEMENTED where used
 
-Razorpay Test Mode          (FR-21)
-
-Razorpay webhook              (FR-38)
-
-AI explanation layer            (FR-17, FR-18)
-
-Calculated dashboard metrics      (FR-33)
-
-Charts
-
-Real-time updates                    (FR-20)
-
-Retry cooldown / consecutive-failure   (FR-08, FR-09)
+Calculated dashboard metrics   (FR-33)          PARTIAL / DEMO DATA REMAINS
+Real-time SSE updates          (FR-20)          OPTIONAL / FUTURE
+Retry cooldown / consecutive-
+failure extensions             (FR-08, FR-09)   verify before claiming complete
 ```
+
+Authentication was originally treated as a stretch capability but is now implemented and therefore belongs in the current Buildathon product description.
 
 ---
 
-## P2 — Stretch Features
+## P2 — Stretch / Future Features
 
 ```text
-Authentication
-
 Multi-merchant tenancy
-
+Merchant-level authorization
+Cross-merchant row isolation
 Advanced alerting
-
 Advanced observability
-
 Recovery strategy analytics
-
 Configurable merchant policies
-
 Advanced replay controls
-
-Queue search/filter/sort            (FR-35)
+Queue search/filter/sort        (FR-35)
 ```
+
+Authentication must not be conflated with these future tenancy capabilities.
 
 ---
 
 # 70. Current Build Status
 
-Current state from the established project overview:
+As of **2026-09-04**:
 
 ```text
-Working:
+Core Product
 
-Failure Classifier               ✅
-
-Recovery Engine                  ✅
-
-Guardrail Engine                 ✅
-
-Dashboard shell + Motion UI      ✅
-
-Frontend ↔ Backend communication ✅
-
-
-In Progress:
-
-Recovery Executor                IN PROGRESS
-
-Audit Trail                      IN PROGRESS
+Failure Classifier                         ✅
+Recovery Engine                            ✅
+Guardrail Engine                           ✅
+Recovery Executor                          ✅
+Verification                               ✅
+Audit API / Agent Replay                   ✅
+Dashboard shell + Motion UI                ✅
+Frontend ↔ Backend communication           ✅
 
 
-Planned:
+Persistence / AI
 
-AI Reasoning Layer               PENDING
+Supabase/PostgreSQL persistence            ✅
+Persistent gateway/recovery state          ✅
+Persistent idempotency path                ✅
+AI Reasoning Layer                         ✅
+Deterministic AI fallback                  ✅
+GroqCloud provider integration             ✅
 
-Razorpay Test Mode + Webhooks    PENDING
 
-Supabase Persistence             PENDING
+Razorpay Test Mode
 
-Real-time SSE                    PENDING
+Razorpay recovery-order API                ✅
+Payment verification API                   ✅
+Payment reconciliation API                 ✅
+Razorpay signed webhook                    ✅
+Webhook signature verification             ✅
+Captured payment synchronization           ✅
 
-Auth / Multi-merchant            PENDING
+
+Authentication
+
+Supabase signup/login/session              ✅
+Protected frontend routing                 ✅
+Bearer-token API helper                    ✅
+FastAPI user-token validation              ✅
+Protected browser-facing APIs              ✅
+
+
+Quality
+
+Backend regression suite                   ✅ 47 passed / 0 failed
+Frontend production build                  ✅
+
+
+Still Future / Incomplete
+
+Multi-merchant tenancy                     ❌
+Merchant-level authorization               ❌
+Cross-merchant data isolation              ❌
+Production Razorpay processing             ❌
+SSE live updates                           optional/future
+Production multi-worker concurrency proof  future
+Deployment/demo freeze                     remaining
 ```
+
+Razorpay remains **Test Mode only**.
+
+Authentication is implemented, but tenant isolation is not.
+
+Dashboard/demo values must not be represented as real merchant production metrics unless they are actually calculated from persisted verified transaction data.
 
 ---
 
 # 71. Immediate Development Priority
 
-The implementation order must remain:
+The core recovery, persistence, AI, Razorpay Test Mode, webhook, and authentication milestones are implemented.
+
+The current priority is:
 
 ```text
-1. Finish Recovery Executor
+1. Finish documentation drift alignment
 
-2. Verify:
-   DETECT
-   CLASSIFY
-   DECIDE
-   GUARDRAIL
-   EXECUTE
-   VERIFY
+   rules.md
+   architecture.md
+   PRD.md
+   design.md
+   project-overview.md
+   phases.md
+   memory.md
 
-3. Complete Audit Trail
+2. Re-run backend regression suite
 
-4. Build Agent Replay from audit data
+   expected current baseline:
+   47 passed / 0 failed
 
-5. Connect real dashboard workflow
+3. Re-run frontend production build
 
-6. Add Supabase persistence
+4. Perform authenticated browser E2E
 
-7. Add AI explanation layer
+   login
+      ↓
+   dashboard
+      ↓
+   allowed RX18492 recovery
+      ↓
+   AI explanation
+      ↓
+   Agent Replay
 
-8. Add Razorpay Test Mode
+5. Verify blocked RX20117 path
 
-9. Add webhooks
+   GUARDRAIL = BLOCKED
+      ↓
+   no EXECUTE
+   no VERIFY
 
-10. Test and deploy
+6. Verify logout and protected-route behavior
+
+7. Review production CORS / environment configuration
+
+8. Deploy and smoke-test
+
+9. Freeze demo / README / submission claims
 ```
 
-Do not pause core recovery development solely to add decorative UI features.
+Do not add decorative features at the cost of correctness, security boundaries, deployment readiness, or demo stability.
 
 ---
 
@@ -1951,6 +2211,7 @@ Auditability
 UX
   ↓
 Animation / Polish
+
 ```
 
 A visually impressive feature must not weaken payment safety or delay completion of the end-to-end recovery pipeline.
@@ -1959,93 +2220,93 @@ A visually impressive feature must not weaken payment safety or delay completion
 
 # 73. Risks & Dependencies
 
-Named explicitly so they're tracked, not just implied by other sections.
+Current risks and dependencies should reflect the implemented state rather than the original build plan.
 
 ```text
-RISK-01  Webhook testing requires a public callback URL.
-         Local dev needs a tunnel (e.g. ngrok) to receive Razorpay
-         test webhooks — this is a setup dependency the team can
-         easily lose time to right before the demo.
+RISK-01  Webhook delivery requires a publicly reachable callback.
+         Local signed Razorpay webhook testing has been proven through
+         a secure tunnel, but the deployed demo still needs a stable
+         callback configuration if webhook behavior is shown live.
+         Mitigation: keep the verified manual/browser path available
+         and configure the deployed callback before demo freeze.
 
-         Mitigation: set up the tunnel early, not on demo day;
-         keep the manual-API-request path (FR-01) as a fallback
-         demo trigger if the tunnel is flaky.
+RISK-02  AI provider rate limits, latency, or provider failure can
+         affect explanation quality/timing.
+         Mitigation: deterministic fallback is implemented and must
+         remain usable without changing the recovery decision.
 
+RISK-03  Guardrail threshold values are Buildathon defaults rather
+         than empirically validated merchant-specific risk policy.
+         Mitigation: describe them as explicit deterministic safety
+         baselines, not data-derived universal thresholds.
 
-RISK-02  AI provider rate limits or latency could stall the
-         AI Decision Drawer's explanation text mid-demo.
+RISK-04  Razorpay Test Mode cannot reproduce every real-world failure
+         scenario in the same way as production.
+         Mitigation: use Razorpay Test Mode for gateway integration
+         proof and deterministic SIMULATION for controlled recovery
+         scenarios that Test Mode cannot reproduce.
 
-         Mitigation: FR-18 fallback (deterministic explanation)
-         must actually be exercised in rehearsal, not just exist
-         in code.
+RISK-05  SSE remains optional and unproven under the final deployment
+         target.
+         Mitigation: do not make SSE a demo blocker; current REST
+         requests and backend audit replay are sufficient.
 
+RISK-06  Authentication can be mistaken for tenant isolation.
+         Current authenticated users are protected from anonymous
+         access, but merchant-level authorization/data isolation has
+         not been implemented.
+         Mitigation: make this limitation explicit in docs and demo
+         claims; do not describe the product as multi-tenant secure.
 
-RISK-03  Guardrail threshold values (Section 18) are reasonable
-         defaults, not validated against real transaction data
-         or merchant risk tolerance.
+RISK-07  Production deployment configuration can introduce CORS,
+         environment-variable, callback-URL, or secret-management
+         errors even when local tests pass.
+         Mitigation: perform a deployment smoke test before demo
+         freeze and never expose private keys in frontend variables.
 
-         Mitigation: state this explicitly if asked by a panel —
-         don't defend ₹50,000 or 0.80 as empirically derived.
+DEP-01   Documentation drift must be closed before the next behavior-
+         changing commit so the canonical docs match the verified
+         implementation.
 
+DEP-02   Browser E2E depends on a valid Supabase user session and the
+         frontend sending the Supabase access token to protected APIs.
 
-RISK-04  Razorpay Test Mode has its own quirks in how it simulates
-         failures (not all failure codes are freely triggerable
-         via test API).
-
-         Mitigation: confirm which FR-02 failure codes are
-         actually reproducible in Razorpay Test Mode before
-         building the demo script around them; fall back to
-         SIMULATION mode (FR-12) for codes that aren't.
-
-
-RISK-05  SSE (FR-20) is unproven under the team's deployment
-         target (Render/Railway free tiers can behave
-         inconsistently with long-lived connections).
-
-         Mitigation: polling fallback is already the documented
-         behavior in architecture.md §34 — treat SSE as P1, not
-         a blocker, per FR-20's note in Section 37.
-
-
-DEP-01   Supabase persistence (FR-22) blocks real dashboard
-         metrics (FR-33) becoming calculated rather than demo
-         data — sequence accordingly (see Section 71, step 6).
-
-
-DEP-02   Recovery Executor (FR-11) blocks Agent Replay (FR-28)
-         showing real data, since replay reads from audit events
-         the executor produces — this is why Section 71 orders
-         executor before replay.
+DEP-03   A live Razorpay webhook demo depends on the final backend
+         being reachable from Razorpay over HTTPS.
 ```
 
 ---
 
 # 74. Open Questions
 
-Unresolved items — flagged rather than silently decided, so the team knows what's still a choice.
+Only genuinely unresolved product choices should remain open.
 
 ```text
-Q1  Should MAX_RECOVERABLE_AMOUNT_AUTO (₹50,000) be merchant-
-    configurable even in the P0 build, or is a single global
-    default acceptable for the Buildathon?
+Q1  Should MAX_RECOVERABLE_AMOUNT_AUTO (₹50,000) become merchant-
+    configurable after the Buildathon, or remain a global baseline
+    until merchant-level authorization/policy scoping exists?
 
+Q2  Should the final five-minute demo show both:
+      - deterministic SIMULATION for the full recovery story, and
+      - one Razorpay Test Mode proof point,
+    or use Razorpay Test Mode only where it adds clear judge value?
 
-Q2  If Razorpay Test Mode can't reproduce a given failure code
-    (see RISK-04), is it acceptable for the demo to run entirely
-    in SIMULATION mode, or does the panel expect at least one
-    live Razorpay Test Mode call?
+Q3  What is the right post-Buildathon design for multi-merchant
+    isolation: merchant membership/roles plus database RLS, or another
+    explicitly tested authorization model?
 
+Q4  When dashboard metrics move fully from demo data to calculated
+    persisted values, what evaluation dataset/window should define a
+    meaningful Recovery Rate target?
+```
 
-Q3  Is multi-merchant tenancy (P2) worth a partial implementation
-    (e.g. a merchant_id column with no real isolation) to make a
-    future P1 push easier, or should it stay fully out of scope
-    until after the Buildathon?
+Resolved:
 
-
-Q4  What counts as "success" for Recovery Rate in Section 67 —
-    is 60% a real target the classifier/guardrail combination
-    should hit on the demo transaction set, or a placeholder that
-    needs revisiting once real classification rules are tuned?
+```text
+- Do not implement "partial tenancy" and then imply isolation.
+- Authentication may exist without merchant-level tenancy.
+- Razorpay Test Mode integration is already implemented and proven;
+  the remaining choice is how much of it to show in the final demo.
 ```
 
 ---
@@ -2059,3 +2320,23 @@ It is a **controlled, explainable, auditable revenue recovery system**.
 Every feature should preserve:
 
 > **Detect accurately → decide explainably → constrain deterministically → execute safely → verify independently → audit everything.**
+
+Product claims must also preserve these distinctions:
+
+```text
+authentication implemented
+≠
+tenant isolation implemented
+
+Razorpay Test Mode
+≠
+production payment processing
+
+AI explanation
+≠
+financial authority
+
+simulation result
+≠
+real merchant revenue
+```

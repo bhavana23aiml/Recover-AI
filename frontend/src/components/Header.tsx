@@ -1,13 +1,10 @@
 import {
-  Bell,
-  Search,
+  FlaskConical,
 } from "lucide-react";
 
 import {
   useLocation,
 } from "react-router-dom";
-
-import AgentStatus from "./AgentStatus";
 
 
 const PAGE_CONFIG: Record<
@@ -15,49 +12,36 @@ const PAGE_CONFIG: Record<
   {
     eyebrow: string;
     title: string;
-    searchPlaceholder: string;
   }
 > = {
   "/": {
     eyebrow: "AI REVENUE RECOVERY",
     title: "Command Center",
-    searchPlaceholder:
-      "Search transactions...",
   },
 
   "/transactions": {
     eyebrow: "PAYMENT RECOVERY",
     title: "Transactions",
-    searchPlaceholder:
-      "Search transactions...",
   },
 
   "/recovery-agent": {
-    eyebrow: "AUTONOMOUS RECOVERY",
+    eyebrow: "RECOVERY INTELLIGENCE",
     title: "Recovery Agent",
-    searchPlaceholder:
-      "Search recovery activity...",
   },
 
   "/activity": {
     eyebrow: "AUDIT & OBSERVABILITY",
     title: "Activity",
-    searchPlaceholder:
-      "Search activity...",
   },
 
   "/guardrails": {
     eyebrow: "DETERMINISTIC SAFETY",
     title: "Guardrails",
-    searchPlaceholder:
-      "Search safety policies...",
   },
 
   "/settings": {
     eyebrow: "SYSTEM CONFIGURATION",
     title: "Settings",
-    searchPlaceholder:
-      "Search settings...",
   },
 };
 
@@ -87,34 +71,65 @@ export default function Header() {
 
 
       <div className="header-actions">
-        <div className="search-box">
-          <Search
-            size={17}
-          />
-
-          <input
-            placeholder={
-              page.searchPlaceholder
-            }
-            aria-label={
-              page.searchPlaceholder
-            }
-          />
-        </div>
-
-
-        <button
-          type="button"
-          className="icon-button"
-          aria-label="Notifications"
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 10,
+            minHeight: 42,
+            padding: "0 12px",
+            borderRadius: 11,
+            border:
+              "1px solid rgba(229,220,199,0.09)",
+            background:
+              "rgba(255,255,255,0.018)",
+          }}
         >
-          <Bell
-            size={18}
-          />
-        </button>
+          <div
+            style={{
+              width: 28,
+              height: 28,
+              display: "grid",
+              placeItems: "center",
+              borderRadius: 9,
+              background:
+                "rgba(147,134,106,0.07)",
+              color: "#B7AA89",
+            }}
+          >
+            <FlaskConical
+              size={14}
+              strokeWidth={1.8}
+            />
+          </div>
 
 
-        <AgentStatus />
+          <div>
+            <div
+              style={{
+                color: "#E5DCC7",
+                fontSize: 9,
+                fontWeight: 800,
+                letterSpacing:
+                  "0.08em",
+                lineHeight: 1.2,
+              }}
+            >
+              TEST ENVIRONMENT
+            </div>
+
+            <div
+              style={{
+                marginTop: 3,
+                color: "#747B83",
+                fontSize: 8,
+                lineHeight: 1.2,
+              }}
+            >
+              Backend-backed demo
+            </div>
+          </div>
+        </div>
       </div>
     </header>
   );

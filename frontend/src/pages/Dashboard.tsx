@@ -1,18 +1,20 @@
 import {
+  useCallback,
   useEffect,
   useState,
 } from "react";
+
 import RazorpayCheckout from "../payments/RazorpayCheckout";
+
 import {
   motion,
 } from "motion/react";
 
 import {
-  IndianRupee,
-  TrendingUp,
-  RotateCcw,
   AlertTriangle,
-  ArrowUpRight,
+  IndianRupee,
+  RotateCcw,
+  TrendingUp,
 } from "lucide-react";
 
 import Sidebar from "../components/Sidebar";
@@ -20,6 +22,11 @@ import Header from "../components/Header";
 import MetricCard from "../components/MetricCard";
 
 import DecisionDrawer from "../components/transactions/DecisionDrawer";
+
+import {
+  DashboardSkeleton,
+  StatePanel,
+} from "../components/ui/SystemState";
 
 import {
   getDashboardData,
@@ -38,9 +45,9 @@ import type {
 } from "../types/recovery";
 
 import type {
+  AgentActivity,
   DashboardResponse,
   Transaction,
-  AgentActivity,
 } from "../types/dashboard";
 
 
@@ -58,6 +65,15 @@ function formatRupees(
 }
 
 
+function normalizeStatus(
+  status: string,
+) {
+  return status
+    .trim()
+    .toLowerCase();
+}
+
+
 export default function Dashboard() {
   // =====================================================
   // DASHBOARD STATE
@@ -66,21 +82,24 @@ export default function Dashboard() {
   const [
     dashboard,
     setDashboard,
-  ] = useState<DashboardResponse | null>(
-    null,
-  );
+  ] =
+    useState<DashboardResponse | null>(
+      null,
+    );
 
   const [
     loading,
     setLoading,
-  ] = useState(true);
+  ] =
+    useState(true);
 
   const [
     error,
     setError,
-  ] = useState<string | null>(
-    null,
-  );
+  ] =
+    useState<string | null>(
+      null,
+    );
 
 
   // =====================================================
@@ -98,54 +117,68 @@ export default function Dashboard() {
   const [
     drawerOpen,
     setDrawerOpen,
-  ] = useState(false);
+  ] =
+    useState(false);
 
   const [
     executingTransactionId,
     setExecutingTransactionId,
-  ] = useState<string | null>(
-    null,
-  );
+  ] =
+    useState<string | null>(
+      null,
+    );
 
   const [
     recoveryError,
     setRecoveryError,
-  ] = useState<string | null>(
-    null,
-  );
+  ] =
+    useState<string | null>(
+      null,
+    );
 
 
   // =====================================================
   // LOAD DASHBOARD
   // =====================================================
 
+  const loadDashboard =
+    useCallback(
+      async () => {
+        try {
+          setLoading(true);
+          setError(null);
+
+          const data =
+            await getDashboardData();
+
+          setDashboard(
+            data,
+          );
+        } catch (err) {
+          console.error(
+            "Dashboard API error:",
+            err,
+          );
+
+          setError(
+            err instanceof Error &&
+            err.message
+              ? err.message
+              : "Unable to load RecoverAI dashboard data.",
+          );
+        } finally {
+          setLoading(false);
+        }
+      },
+      [],
+    );
+
+
   useEffect(() => {
-    async function loadDashboard() {
-      try {
-        setLoading(true);
-
-        const data =
-          await getDashboardData();
-
-        setDashboard(data);
-
-        setError(null);
-      } catch (err) {
-        console.error(
-          "Dashboard API error:",
-          err,
-        );
-
-        setError(
-          "Unable to connect to the RecoverAI backend.",
-        );
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadDashboard();
-  }, []);
+    void loadDashboard();
+  }, [
+    loadDashboard,
+  ]);
 
 
   // =====================================================
@@ -155,16 +188,18 @@ export default function Dashboard() {
   // IMPORTANT:
   //
   // Recovery runs ONLY when the user explicitly clicks
-  // "Run recovery".
+  // "Run recovery" / "View block".
   //
   // Merely viewing a transaction does not execute
-  // financial/recovery logic.
+  // recovery logic.
   // =====================================================
 
   async function handleRunRecovery(
     transaction: Transaction,
   ) {
-    if (executingTransactionId) {
+    if (
+      executingTransactionId
+    ) {
       return;
     }
 
@@ -173,7 +208,9 @@ export default function Dashboard() {
         transaction.id,
       );
 
-      setRecoveryError(null);
+      setRecoveryError(
+        null,
+      );
 
       const response =
         await executeRecovery({
@@ -191,15 +228,18 @@ export default function Dashboard() {
         });
 
       const drawerData =
-  mapRecoveryResponseToDrawer(
-    response,
-    transaction.retry_count,
-  );
+        mapRecoveryResponseToDrawer(
+          response,
+          transaction.retry_count,
+        );
+
       setDecisionData(
         drawerData,
       );
 
-      setDrawerOpen(true);
+      setDrawerOpen(
+        true,
+      );
     } catch (err) {
       console.error(
         "Recovery execution error:",
@@ -220,49 +260,26 @@ export default function Dashboard() {
 
 
   // =====================================================
-  // LOADING
+  // LOADING STATE
   // =====================================================
 
   if (loading) {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
+      <div className="app-shell">
+        <Sidebar />
 
-          display: "grid",
+        <main className="main-content">
+          <Header />
 
-          placeItems: "center",
-
-          background: "#080b0f",
-
-          color: "#ffffff",
-        }}
-      >
-        <motion.div
-          initial={{
-            opacity: 0,
-          }}
-          animate={{
-            opacity: [
-              0.4,
-              1,
-              0.4,
-            ],
-          }}
-          transition={{
-            duration: 1.5,
-            repeat: Infinity,
-          }}
-        >
-          RecoverAI is loading...
-        </motion.div>
+          <DashboardSkeleton />
+        </main>
       </div>
     );
   }
 
 
   // =====================================================
-  // DASHBOARD ERROR
+  // DASHBOARD ERROR STATE
   // =====================================================
 
   if (
@@ -270,65 +287,81 @@ export default function Dashboard() {
     !dashboard
   ) {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
+      <div className="app-shell">
+        <Sidebar />
 
-          display: "grid",
+        <main className="main-content">
+          <Header />
 
-          placeItems: "center",
-
-          background: "#080b0f",
-
-          color: "#ffffff",
-        }}
-      >
-        <div>
-          <h2>
-            RecoverAI connection error
-          </h2>
-
-          <p
+          <div
             style={{
-              color: "#888",
+              paddingTop: 8,
             }}
           >
-            {error}
-          </p>
-
-          <p
-            style={{
-              color: "#666",
-            }}
-          >
-            Make sure FastAPI is
-            running on port 8000.
-          </p>
-        </div>
+            <StatePanel
+              kind="error"
+              title="Unable to load dashboard"
+              description={
+                error ??
+                "RecoverAI could not load the current dashboard data."
+              }
+              actionLabel="Retry"
+              onAction={() => {
+                void loadDashboard();
+              }}
+            />
+          </div>
+        </main>
       </div>
     );
   }
 
+
+  // =====================================================
+  // DERIVED DASHBOARD DATA
+  // =====================================================
 
   const metrics =
     dashboard.metrics;
 
   const transactions:
     Transaction[] =
-      dashboard.transactions;
+      dashboard.transactions ??
+      [];
 
   const activities:
     AgentActivity[] =
-      dashboard.agent_activity;
+      dashboard.agent_activity ??
+      [];
+
+  const blockedCount =
+    transactions.filter(
+      (transaction) =>
+        normalizeStatus(
+          transaction.status,
+        ) === "blocked",
+    ).length;
+
+  const recoveredCount =
+    transactions.filter(
+      (transaction) =>
+        normalizeStatus(
+          transaction.status,
+        ) === "recovered",
+    ).length;
+
+  const activeQueueCount =
+    transactions.length;
+
   const razorpayTestRecoveryJobId =
-  import.meta.env.VITE_RAZORPAY_TEST_RECOVERY_JOB_ID;
+    import.meta.env
+      .VITE_RAZORPAY_TEST_RECOVERY_JOB_ID;
 
 
   return (
     <>
       <div className="app-shell">
         <Sidebar />
-
 
         <main className="main-content">
           <Header />
@@ -349,12 +382,12 @@ export default function Dashboard() {
               y: 0,
             }}
             transition={{
-              duration: 0.6,
+              duration: 0.5,
             }}
           >
             <div>
               <span className="hero-label">
-                RECOVERAI LIVE
+                RECOVERY OPERATIONS
               </span>
 
               <h2>
@@ -366,29 +399,156 @@ export default function Dashboard() {
               <p>
                 Detect failed payments,
                 choose safe recovery
-                strategies and measure
-                every rupee recovered.
+                strategies and verify
+                every recovery outcome.
               </p>
             </div>
 
 
-            <div className="hero-stat">
-              <span>
-                Recovered today
+            {/* RECOVERY PULSE */}
+
+            <div
+              className="hero-stat"
+              style={{
+                minWidth: 280,
+                padding:
+                  "18px 20px",
+                borderRadius: 15,
+                border:
+                  "1px solid rgba(229,220,199,0.09)",
+                background:
+                  "rgba(255,255,255,0.018)",
+              }}
+            >
+              <span
+                style={{
+                  display: "block",
+                  color: "#93866A",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing:
+                    "0.12em",
+                  textTransform:
+                    "uppercase",
+                }}
+              >
+                Recovery Pulse
               </span>
 
-              <strong>
+              <strong
+                style={{
+                  display: "block",
+                  marginTop: 12,
+                  color: "#F3EFE6",
+                  fontSize: 28,
+                  lineHeight: 1.05,
+                }}
+              >
                 {formatRupees(
                   metrics.recovered_today,
                 )}
               </strong>
 
-              <div className="hero-growth">
-                <ArrowUpRight
-                  size={15}
-                />
+              <span
+                style={{
+                  display: "block",
+                  marginTop: 5,
+                  color: "#747B83",
+                  fontSize: 11,
+                }}
+              >
+                Recovered today
+              </span>
 
-                12.4%
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "1fr 1fr",
+                  gap: 10,
+                  marginTop: 18,
+                }}
+              >
+                <div
+                  style={{
+                    padding:
+                      "10px 11px",
+                    borderRadius: 10,
+                    border:
+                      "1px solid rgba(229,220,199,0.07)",
+                    background:
+                      "rgba(255,255,255,0.018)",
+                  }}
+                >
+                  <strong
+                    style={{
+                      display: "block",
+                      color: "#E5DCC7",
+                      fontSize: 16,
+                    }}
+                  >
+                    {activeQueueCount}
+                  </strong>
+
+                  <span
+                    style={{
+                      display: "block",
+                      marginTop: 3,
+                      color: "#747B83",
+                      fontSize: 10,
+                    }}
+                  >
+                    Queue items
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    padding:
+                      "10px 11px",
+                    borderRadius: 10,
+                    border:
+                      "1px solid rgba(201,123,116,0.15)",
+                    background:
+                      "rgba(201,123,116,0.035)",
+                  }}
+                >
+                  <strong
+                    style={{
+                      display: "block",
+                      color: "#D49A92",
+                      fontSize: 16,
+                    }}
+                  >
+                    {blockedCount}
+                  </strong>
+
+                  <span
+                    style={{
+                      display: "block",
+                      marginTop: 3,
+                      color: "#747B83",
+                      fontSize: 10,
+                    }}
+                  >
+                    Blocked safely
+                  </span>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  marginTop: 12,
+                  color: "#686E74",
+                  fontSize: 9,
+                  fontWeight: 700,
+                  letterSpacing:
+                    "0.08em",
+                  textTransform:
+                    "uppercase",
+                }}
+              >
+                Demo / simulation data
               </div>
             </div>
           </motion.section>
@@ -401,22 +561,14 @@ export default function Dashboard() {
           <div
             style={{
               display: "flex",
-
               alignItems: "center",
-
               gap: 8,
-
               marginTop: 12,
-
               marginBottom: 4,
-
               fontSize: 10,
-
               fontWeight: 700,
-
               letterSpacing:
                 "0.12em",
-
               color: "#747B83",
             }}
           >
@@ -424,10 +576,8 @@ export default function Dashboard() {
               style={{
                 width: 6,
                 height: 6,
-
                 borderRadius:
                   "50%",
-
                 background:
                   "#93866A",
               }}
@@ -435,99 +585,116 @@ export default function Dashboard() {
 
             DEMO DATA · SIMULATION ENVIRONMENT
           </div>
+
+
           {/* ================================================= */}
-{/* RAZORPAY TEST MODE                                */}
-{/* ================================================= */}
+          {/* RAZORPAY TEST MODE                                */}
+          {/* ================================================= */}
 
-{razorpayTestRecoveryJobId && (
-  <motion.section
-    initial={{
-      opacity: 0,
-      y: 10,
-    }}
-    animate={{
-      opacity: 1,
-      y: 0,
-    }}
-    transition={{
-      duration: 0.4,
-    }}
-    style={{
-      marginTop: 16,
-      marginBottom: 16,
-      padding: 18,
-      borderRadius: 14,
-      border:
-        "1px solid rgba(229,220,199,0.10)",
-      background:
-        "rgba(255,255,255,0.025)",
-    }}
-  >
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 20,
-        flexWrap: "wrap",
-      }}
-    >
-      <div>
-        <div
-          style={{
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: "0.12em",
-            color: "#93866A",
-            marginBottom: 7,
-          }}
-        >
-          RAZORPAY TEST MODE
-        </div>
+          {razorpayTestRecoveryJobId && (
+            <motion.section
+              initial={{
+                opacity: 0,
+                y: 10,
+              }}
+              animate={{
+                opacity: 1,
+                y: 0,
+              }}
+              transition={{
+                duration: 0.4,
+              }}
+              style={{
+                marginTop: 16,
+                marginBottom: 16,
+                padding: 18,
+                borderRadius: 14,
+                border:
+                  "1px solid rgba(229,220,199,0.10)",
+                background:
+                  "rgba(255,255,255,0.025)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems:
+                    "center",
+                  justifyContent:
+                    "space-between",
+                  gap: 20,
+                  flexWrap:
+                    "wrap",
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      letterSpacing:
+                        "0.12em",
+                      color: "#93866A",
+                      marginBottom: 7,
+                    }}
+                  >
+                    RAZORPAY TEST MODE
+                  </div>
 
-        <strong
-          style={{
-            display: "block",
-            color: "#F3EFE6",
-            fontSize: 15,
-            marginBottom: 5,
-          }}
-        >
-          Gateway Verification Test
-        </strong>
+                  <strong
+                    style={{
+                      display: "block",
+                      color: "#F3EFE6",
+                      fontSize: 15,
+                      marginBottom: 5,
+                    }}
+                  >
+                    Gateway Verification
+                  </strong>
 
-        <span
-          style={{
-            color: "#747B83",
-            fontSize: 11,
-          }}
-        >
-          RZPTEST002 · ₹1.00 · No real money
-        </span>
-      </div>
+                  <span
+                    style={{
+                      display: "block",
+                      color: "#747B83",
+                      fontSize: 11,
+                    }}
+                  >
+                    RZPTEST002 · ₹1.00 · No real money
+                  </span>
 
-      <div
-        style={{
-          minWidth: 210,
-        }}
-      >
-        <RazorpayCheckout
-          recoveryJobId={
-            razorpayTestRecoveryJobId
-          }
-          transactionId="RZPTEST002"
-          
-          onVerified={(result) => {
-            console.log(
-              "RecoverAI gateway verification:",
-              result,
-            );
-          }}
-        />
-      </div>
-    </div>
-  </motion.section>
-)}
+                  <span
+                    style={{
+                      display: "block",
+                      marginTop: 5,
+                      color: "#68716B",
+                      fontSize: 10,
+                    }}
+                  >
+                    Server-side payment verification enabled
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    minWidth: 210,
+                  }}
+                >
+                  <RazorpayCheckout
+                    recoveryJobId={
+                      razorpayTestRecoveryJobId
+                    }
+                    transactionId="RZPTEST002"
+                    onVerified={(result) => {
+                      console.log(
+                        "RecoverAI gateway verification:",
+                        result,
+                      );
+                    }}
+                  />
+                </div>
+              </div>
+            </motion.section>
+          )}
 
 
           {/* ================================================= */}
@@ -545,7 +712,6 @@ export default function Dashboard() {
               delay={0.05}
             />
 
-
             <MetricCard
               title="Revenue Recovered"
               value={formatRupees(
@@ -558,15 +724,13 @@ export default function Dashboard() {
               delay={0.1}
             />
 
-
             <MetricCard
               title="Recovery Rate"
               value={`${metrics.recovery_rate}%`}
-              subtitle="+8.4% vs previous period"
+              subtitle="Demo / simulation metric"
               icon={TrendingUp}
               delay={0.15}
             />
-
 
             <MetricCard
               title="Active Recoveries"
@@ -594,27 +758,16 @@ export default function Dashboard() {
               }}
               style={{
                 marginTop: 16,
-
-                padding:
-                  "12px 14px",
-
-                borderRadius: 10,
-
-                border:
-                  "1px solid rgba(201,123,116,0.22)",
-
-                background:
-                  "rgba(201,123,116,0.06)",
-
-                color:
-                  "#C97B74",
-
-                fontSize: 12,
-
-                lineHeight: 1.5,
               }}
             >
-              {recoveryError}
+              <StatePanel
+                kind="error"
+                compact
+                title="Recovery action could not be completed"
+                description={
+                  recoveryError
+                }
+              />
             </motion.div>
           )}
 
@@ -654,217 +807,273 @@ export default function Dashboard() {
                   </h3>
                 </div>
 
+                {transactions.length >
+                  0 && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems:
+                        "center",
+                      gap: 7,
+                      flexWrap:
+                        "wrap",
+                    }}
+                  >
+                    <span
+                      style={{
+                        padding:
+                          "5px 8px",
+                        borderRadius: 999,
+                        border:
+                          "1px solid rgba(229,220,199,0.08)",
+                        color: "#7B8186",
+                        fontSize: 9,
+                        fontWeight: 700,
+                        letterSpacing:
+                          "0.04em",
+                      }}
+                    >
+                      {transactions.length} QUEUED
+                    </span>
 
-                <button
-                  className="ghost-button"
-                  type="button"
-                >
-                  View all
-                </button>
+                    <span
+                      style={{
+                        padding:
+                          "5px 8px",
+                        borderRadius: 999,
+                        border:
+                          "1px solid rgba(109,150,121,0.16)",
+                        color: "#83A88D",
+                        fontSize: 9,
+                        fontWeight: 700,
+                        letterSpacing:
+                          "0.04em",
+                      }}
+                    >
+                      {recoveredCount} RECOVERED
+                    </span>
+
+                    <span
+                      style={{
+                        padding:
+                          "5px 8px",
+                        borderRadius: 999,
+                        border:
+                          "1px solid rgba(201,123,116,0.18)",
+                        color: "#C98A82",
+                        fontSize: 9,
+                        fontWeight: 700,
+                        letterSpacing:
+                          "0.04em",
+                      }}
+                    >
+                      {blockedCount} BLOCKED
+                    </span>
+                  </div>
+                )}
               </div>
 
 
-              <div className="transaction-table">
-
-                {/* TABLE HEADER */}
-
-                <div className="transaction-row table-heading">
-                  <span>
-                    Transaction
-                  </span>
-
-                  <span>
-                    Amount
-                  </span>
-
-                  <span>
-                    Failure
-                  </span>
-
-                  <span>
-                    Agent Action
-                  </span>
-
-                  <span>
-                    Status
-                  </span>
+              {transactions.length ===
+              0 ? (
+                <div
+                  style={{
+                    padding:
+                      "0 16px 16px",
+                  }}
+                >
+                  <StatePanel
+                    kind="empty"
+                    compact
+                    title="No failed transactions"
+                    description="New failed payments will appear here when they are detected by RecoverAI."
+                  />
                 </div>
+              ) : (
+                <div className="transaction-table">
+
+                  {/* TABLE HEADER */}
+
+                  <div className="transaction-row table-heading">
+                    <span>
+                      Transaction
+                    </span>
+
+                    <span>
+                      Amount
+                    </span>
+
+                    <span>
+                      Failure
+                    </span>
+
+                    <span>
+                      Agent Action
+                    </span>
+
+                    <span>
+                      Status
+                    </span>
+                  </div>
 
 
-                {/* TRANSACTIONS */}
+                  {/* TRANSACTIONS */}
 
-                {transactions.map(
-                  (
-                    transaction,
-                  ) => {
-                    const isExecuting =
-                      executingTransactionId ===
-                      transaction.id;
+                  {transactions.map(
+                    (
+                      transaction,
+                    ) => {
+                      const isExecuting =
+                        executingTransactionId ===
+                        transaction.id;
 
-                    return (
-                      <motion.div
-                        key={
-                          transaction.id
-                        }
-                        className="transaction-row"
-                        whileHover={{
-                          x: 3,
-                        }}
-                      >
-                        {/* ID */}
+                      const isBlocked =
+                        normalizeStatus(
+                          transaction.status,
+                        ) ===
+                        "blocked";
 
-                        <strong>
-                          {
+                      return (
+                        <motion.div
+                          key={
                             transaction.id
                           }
-                        </strong>
-
-
-                        {/* AMOUNT */}
-
-                        <span>
-                          {formatRupees(
-                            transaction.amount,
-                          )}
-                        </span>
-
-
-                        {/* FAILURE */}
-
-                        <span>
-                          {
-                            transaction.failure_reason
-                          }
-                        </span>
-
-
-                        {/* ACTION */}
-
-                        <span>
-                          {
-                            transaction.agent_action
-                          }
-                        </span>
-
-
-                        {/* STATUS + EXPLICIT RECOVERY BUTTON */}
-
-                        <div
-                          style={{
-                            display:
-                              "flex",
-
-                            alignItems:
-                              "center",
-
-                            justifyContent:
-                              "space-between",
-
-                            gap: 10,
-
-                            minWidth: 0,
+                          className="transaction-row"
+                          whileHover={{
+                            x: 3,
                           }}
                         >
-                          <span
-                            className={`status-badge ${transaction.status.toLowerCase()}`}
-                          >
+                          <strong>
                             {
-                              transaction.status
+                              transaction.id
+                            }
+                          </strong>
+
+                          <span>
+                            {formatRupees(
+                              transaction.amount,
+                            )}
+                          </span>
+
+                          <span>
+                            {
+                              transaction.failure_reason
                             }
                           </span>
 
-
-                          <button
-                            type="button"
-
-                            disabled={
-                              isExecuting
+                          <span>
+                            {
+                              transaction.agent_action
                             }
+                          </span>
 
-                            onClick={() =>
-                              handleRunRecovery(
-                                transaction,
-                              )
-                            }
-
-                            aria-label={`Run recovery for ${transaction.id}`}
-
+                          <div
                             style={{
                               display:
-                                "inline-flex",
-
+                                "flex",
                               alignItems:
                                 "center",
-
                               justifyContent:
-                                "center",
-
-                              gap: 6,
-
-                              padding:
-                                "6px 9px",
-
-                              borderRadius:
-                                8,
-
-                              border:
-                                "1px solid rgba(229,220,199,0.12)",
-
-                              background:
-                                isExecuting
-                                  ? "rgba(255,255,255,0.025)"
-                                  : "rgba(229,220,199,0.05)",
-
-                              color:
-                                isExecuting
-                                  ? "#747B83"
-                                  : "#E5DCC7",
-
-                              fontSize:
-                                10,
-
-                              fontWeight:
-                                700,
-
-                              letterSpacing:
-                                "0.035em",
-
-                              cursor:
-                                isExecuting
-                                  ? "not-allowed"
-                                  : "pointer",
-
-                              whiteSpace:
-                                "nowrap",
-
-                              opacity:
-                                isExecuting
-                                  ? 0.7
-                                  : 1,
-
-                              transition:
-                                "all 160ms ease",
+                                "space-between",
+                              gap: 10,
+                              minWidth: 0,
                             }}
                           >
-                            <RotateCcw
-                              size={12}
-                            />
+                            <span
+                              className={`status-badge ${normalizeStatus(
+                                transaction.status,
+                              )}`}
+                            >
+                              {
+                                transaction.status
+                              }
+                            </span>
 
-                            {isExecuting
-                              ? "RUNNING"
-                              : "RUN RECOVERY"}
-                          </button>
-                        </div>
-                      </motion.div>
-                    );
-                  },
-                )}
-              </div>
+                            <button
+                              type="button"
+                              disabled={
+                                isExecuting
+                              }
+                              onClick={() =>
+                                handleRunRecovery(
+                                  transaction,
+                                )
+                              }
+                              aria-label={
+                                isBlocked
+                                  ? `View safety block for ${transaction.id}`
+                                  : `Run recovery for ${transaction.id}`
+                              }
+                              style={{
+                                display:
+                                  "inline-flex",
+                                alignItems:
+                                  "center",
+                                justifyContent:
+                                  "center",
+                                gap: 6,
+                                padding:
+                                  "6px 9px",
+                                borderRadius:
+                                  8,
+                                border:
+                                  isBlocked
+                                    ? "1px solid rgba(201,123,116,0.20)"
+                                    : "1px solid rgba(229,220,199,0.12)",
+                                background:
+                                  isExecuting
+                                    ? "rgba(255,255,255,0.025)"
+                                    : isBlocked
+                                      ? "rgba(201,123,116,0.055)"
+                                      : "rgba(229,220,199,0.05)",
+                                color:
+                                  isExecuting
+                                    ? "#747B83"
+                                    : isBlocked
+                                      ? "#D39B94"
+                                      : "#E5DCC7",
+                                fontSize:
+                                  10,
+                                fontWeight:
+                                  700,
+                                letterSpacing:
+                                  "0.035em",
+                                cursor:
+                                  isExecuting
+                                    ? "not-allowed"
+                                    : "pointer",
+                                whiteSpace:
+                                  "nowrap",
+                                opacity:
+                                  isExecuting
+                                    ? 0.7
+                                    : 1,
+                                transition:
+                                  "all 160ms ease",
+                              }}
+                            >
+                              <RotateCcw
+                                size={12}
+                              />
+
+                              {isExecuting
+                                ? "RUNNING"
+                                : isBlocked
+                                  ? "VIEW BLOCK"
+                                  : "RUN RECOVERY"}
+                            </button>
+                          </div>
+                        </motion.div>
+                      );
+                    },
+                  )}
+                </div>
+              )}
             </motion.div>
 
 
             {/* =============================================== */}
-            {/* LIVE AGENT                                     */}
+            {/* RECOVERY ACTIVITY                               */}
             {/* =============================================== */}
 
             <motion.div
@@ -888,83 +1097,96 @@ export default function Dashboard() {
                   </span>
 
                   <h3>
-                    Live Activity
+                    Recovery Activity
                   </h3>
                 </div>
 
-
-                <div className="live-label">
-                  <span />
-
-                  LIVE
+                <div
+                  style={{
+                    padding:
+                      "5px 8px",
+                    borderRadius: 999,
+                    border:
+                      "1px solid rgba(229,220,199,0.08)",
+                    color: "#747B83",
+                    fontSize: 9,
+                    fontWeight: 700,
+                    letterSpacing:
+                      "0.06em",
+                  }}
+                >
+                  AUDIT FEED
                 </div>
               </div>
 
 
-              <div className="activity-list">
-                {activities.map(
-                  (
-                    activity,
-                    index,
-                  ) => (
-                    <motion.div
-                      className="activity-item"
+              {activities.length ===
+              0 ? (
+                <StatePanel
+                  kind="empty"
+                  compact
+                  title="No recovery activity yet"
+                  description="Recovery events will appear here as RecoverAI processes transactions."
+                />
+              ) : (
+                <div className="activity-list">
+                  {activities.map(
+                    (
+                      activity,
+                      index,
+                    ) => (
+                      <motion.div
+                        className="activity-item"
+                        key={`${activity.time}-${index}`}
+                        initial={{
+                          opacity: 0,
+                          x: 10,
+                        }}
+                        animate={{
+                          opacity: 1,
+                          x: 0,
+                        }}
+                        transition={{
+                          delay:
+                            0.35 +
+                            index *
+                              0.08,
+                        }}
+                      >
+                        <div className="activity-marker">
+                          <span />
 
-                      key={`${activity.time}-${index}`}
+                          {index !==
+                            activities.length -
+                              1 && (
+                            <div />
+                          )}
+                        </div>
 
-                      initial={{
-                        opacity: 0,
-                        x: 10,
-                      }}
+                        <div className="activity-content">
+                          <span className="activity-time">
+                            {
+                              activity.time
+                            }
+                          </span>
 
-                      animate={{
-                        opacity: 1,
-                        x: 0,
-                      }}
+                          <strong>
+                            {
+                              activity.title
+                            }
+                          </strong>
 
-                      transition={{
-                        delay:
-                          0.35 +
-                          index *
-                            0.08,
-                      }}
-                    >
-                      <div className="activity-marker">
-                        <span />
-
-                        {index !==
-                          activities.length -
-                            1 && (
-                          <div />
-                        )}
-                      </div>
-
-
-                      <div className="activity-content">
-                        <span className="activity-time">
-                          {
-                            activity.time
-                          }
-                        </span>
-
-
-                        <strong>
-                          {
-                            activity.title
-                          }
-                        </strong>
-
-
-                        <p>
-                          {
-                            activity.detail
-                          }
-                        </p>
-                      </div>
-                    </motion.div>
-                  ),
-                )}
-              </div>
+                          <p>
+                            {
+                              activity.detail
+                            }
+                          </p>
+                        </div>
+                      </motion.div>
+                    ),
+                  )}
+                </div>
+              )}
             </motion.div>
           </section>
         </main>
@@ -977,9 +1199,7 @@ export default function Dashboard() {
 
       <DecisionDrawer
         open={drawerOpen}
-
         data={decisionData}
-
         onClose={() =>
           setDrawerOpen(
             false,

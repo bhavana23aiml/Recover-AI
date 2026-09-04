@@ -1,10 +1,21 @@
-// =========================================================
+
 // RECOVERAI — RAZORPAY TEST MODE API
 // =========================================================
+//
+// Browser-facing Razorpay API calls are authenticated through
+// the shared RecoverAI auth helper.
+//
+// The frontend never owns:
+// - Razorpay secret keys
+// - trusted payment amount/currency
+// - guardrail approval
+// - payment success state
+//
+// =========================================================
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ??
-  "http://127.0.0.1:8000";
+import {
+  authenticatedFetch,
+} from "./authFetch";
 
 
 // =========================================================
@@ -170,28 +181,24 @@ async function parseResponse<T>(
 // Frontend sends ONLY recovery_job_id.
 //
 // It does NOT decide:
-//
 // - amount
 // - currency
 // - guardrail status
 //
-// RecoverAI backend loads trusted values
-// from persistence.
+// RecoverAI backend loads trusted values from persistence.
+//
 // =========================================================
 
 export async function createRazorpayRecoveryOrder(
   recoveryJobId: string,
 ): Promise<RazorpayRecoveryOrderResponse> {
   const response =
-    await fetch(
-      `${API_BASE_URL}/api/razorpay/recovery-order`,
+    await authenticatedFetch(
+      "/api/razorpay/recovery-order",
       {
         method: "POST",
 
         headers: {
-          "Content-Type":
-            "application/json",
-
           Accept:
             "application/json",
         },
@@ -215,35 +222,26 @@ export async function createRazorpayRecoveryOrder(
 // =========================================================
 //
 // Razorpay Checkout gives the browser:
-//
 // - razorpay_order_id
 // - razorpay_payment_id
 // - razorpay_signature
 //
 // Browser success is NOT considered verified.
 //
-// RecoverAI backend performs:
-// - persisted order validation
-// - cryptographic signature verification
-// - independent Razorpay fetch
-// - amount verification
-// - currency verification
-// - captured-status verification
+// RecoverAI backend performs trusted verification.
+//
 // =========================================================
 
 export async function verifyRazorpayPayment(
   request: RazorpayVerifyPaymentRequest,
 ): Promise<RazorpayVerifyPaymentResponse> {
   const response =
-    await fetch(
-      `${API_BASE_URL}/api/razorpay/verify-payment`,
+    await authenticatedFetch(
+      "/api/razorpay/verify-payment",
       {
         method: "POST",
 
         headers: {
-          "Content-Type":
-            "application/json",
-
           Accept:
             "application/json",
         },
@@ -265,43 +263,24 @@ export async function verifyRazorpayPayment(
 // RECONCILE RAZORPAY PAYMENT
 // =========================================================
 //
-// Used when:
-//
-// Razorpay payment succeeds
-//        ↓
-// normal browser verification fails/times out
-//        ↓
-// frontend asks RecoverAI to reconcile
-//        ↓
-// RecoverAI independently queries Razorpay
-//
-// IMPORTANT:
+// Used when normal browser verification is incomplete.
 //
 // Frontend sends ONLY recovery_job_id.
 //
-// Frontend does NOT send:
-// - payment ID
-// - order ID
-// - amount
-// - currency
-// - payment status
+// RecoverAI independently queries/verifies gateway state.
 //
-// RecoverAI discovers and verifies these independently.
 // =========================================================
 
 export async function reconcileRazorpayPayment(
   recoveryJobId: string,
 ): Promise<RazorpayReconcilePaymentResponse> {
   const response =
-    await fetch(
-      `${API_BASE_URL}/api/razorpay/reconcile-payment`,
+    await authenticatedFetch(
+      "/api/razorpay/reconcile-payment",
       {
         method: "POST",
 
         headers: {
-          "Content-Type":
-            "application/json",
-
           Accept:
             "application/json",
         },

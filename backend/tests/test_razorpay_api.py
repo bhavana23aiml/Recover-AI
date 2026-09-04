@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
+
+from core.auth import AuthenticatedUser
 
 import routers.razorpay as razorpay_router
 from main import app
@@ -10,6 +13,61 @@ from services.razorpay_service import (
 
 
 client = TestClient(app)
+
+
+
+# =========================================================
+# TEST AUTHENTICATION
+# =========================================================
+#
+# Browser-facing Razorpay endpoints require a valid
+# RecoverAI Supabase-authenticated user in production.
+#
+# These business tests replace only that dependency with
+# a deterministic local test user.
+#
+# Production authentication remains unchanged.
+# =========================================================
+
+
+def override_current_user() -> AuthenticatedUser:
+    return AuthenticatedUser(
+        id="recoverai-razorpay-test-user",
+        email="razorpay-test@recoverai.local",
+        user_metadata={},
+        app_metadata={},
+    )
+
+
+@pytest.fixture(autouse=True)
+def authenticated_razorpay_user():
+    dependency = razorpay_router.get_current_user
+
+    previous_override = (
+        app.dependency_overrides.get(
+            dependency
+        )
+    )
+
+    app.dependency_overrides[
+        dependency
+    ] = override_current_user
+
+    try:
+        yield
+
+    finally:
+        if previous_override is None:
+            app.dependency_overrides.pop(
+                dependency,
+                None,
+            )
+        else:
+            app.dependency_overrides[
+                dependency
+            ] = previous_override
+
+
 
 
 # =========================================================

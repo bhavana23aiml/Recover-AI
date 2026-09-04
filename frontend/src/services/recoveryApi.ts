@@ -4,16 +4,23 @@ import type {
   RecoveryRequest,
 } from "../types/recovery";
 
+import {
+  authenticatedFetch,
+} from "./authFetch";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ??
-  "http://127.0.0.1:8000";
 
+// =========================================================
+// FASTAPI ERROR SHAPE
+// =========================================================
 
 type FastApiValidationError = {
   detail?: unknown;
 };
 
+
+// =========================================================
+// ERROR MESSAGE
+// =========================================================
 
 function getErrorMessage(
   data: unknown,
@@ -28,13 +35,19 @@ function getErrorMessage(
       data as FastApiValidationError
     ).detail;
 
-    if (typeof detail === "string") {
+    if (
+      typeof detail === "string"
+    ) {
       return detail;
     }
 
-    if (detail !== undefined) {
+    if (
+      detail !== undefined
+    ) {
       try {
-        return JSON.stringify(detail);
+        return JSON.stringify(
+          detail,
+        );
       } catch {
         return fallback;
       }
@@ -45,13 +58,18 @@ function getErrorMessage(
 }
 
 
+// =========================================================
+// RESPONSE PARSER
+// =========================================================
+
 async function parseResponse<T>(
   response: Response,
 ): Promise<T> {
   let data: unknown;
 
   try {
-    data = await response.json();
+    data =
+      await response.json();
   } catch {
     throw new Error(
       `RecoverAI API returned an invalid response (${response.status}).`,
@@ -71,29 +89,49 @@ async function parseResponse<T>(
 }
 
 
+// =========================================================
+// EXECUTE RECOVERY
+// =========================================================
+
 /**
  * Explicitly trigger one recovery attempt.
  *
- * Important:
- * This performs POST /api/recovery/execute.
- * It must only be called from an explicit recovery action,
- * not merely when opening the Decision Drawer.
+ * Authentication:
+ *
+ * A valid Supabase session is required.
+ *
+ * IMPORTANT:
+ *
+ * This performs:
+ *
+ * POST /api/recovery/execute
+ *
+ * It must only be called from an explicit recovery action.
+ *
+ * Opening the Decision Drawer must NOT call this function.
  */
 export async function executeRecovery(
   request: RecoveryRequest,
 ): Promise<RecoveryExecutionResponse> {
-  const response = await fetch(
-    `${API_BASE_URL}/api/recovery/execute`,
-    {
-      method: "POST",
+  const response =
+    await authenticatedFetch(
+      "/api/recovery/execute",
+      {
+        method: "POST",
 
-      headers: {
-        "Content-Type": "application/json",
+        headers: {
+          Accept:
+            "application/json",
+
+          "Content-Type":
+            "application/json",
+        },
+
+        body: JSON.stringify(
+          request,
+        ),
       },
-
-      body: JSON.stringify(request),
-    },
-  );
+    );
 
   return parseResponse<RecoveryExecutionResponse>(
     response,
@@ -101,28 +139,40 @@ export async function executeRecovery(
 }
 
 
+// =========================================================
+// GET RECOVERY AUDIT
+// =========================================================
+
 /**
  * Read the real audit events already generated
  * by the backend for a transaction.
  *
- * This endpoint does NOT execute a recovery.
+ * Authentication:
+ *
+ * A valid Supabase session is required.
+ *
+ * This endpoint does NOT execute recovery.
  */
 export async function getRecoveryAudit(
   transactionId: string,
 ): Promise<AuditEvent[]> {
   const encodedTransactionId =
-    encodeURIComponent(transactionId);
+    encodeURIComponent(
+      transactionId,
+    );
 
-  const response = await fetch(
-    `${API_BASE_URL}/api/recovery/audit/${encodedTransactionId}`,
-    {
-      method: "GET",
+  const response =
+    await authenticatedFetch(
+      `/api/recovery/audit/${encodedTransactionId}`,
+      {
+        method: "GET",
 
-      headers: {
-        Accept: "application/json",
+        headers: {
+          Accept:
+            "application/json",
+        },
       },
-    },
-  );
+    );
 
   return parseResponse<AuditEvent[]>(
     response,

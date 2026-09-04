@@ -1,10 +1,18 @@
+import os
+
 from fastapi import (
+    Depends,
     FastAPI,
     HTTPException,
 )
 
 from fastapi.middleware.cors import (
     CORSMiddleware,
+)
+
+from core.auth import (
+    AuthenticatedUser,
+    get_current_user,
 )
 
 from routers.razorpay import (
@@ -50,7 +58,7 @@ from services.recovery_executor import (
 app = FastAPI(
     title="RecoverAI API",
     description=(
-        "AI-powered revenue recovery platform"
+        "Intelligent AI-powered revenue recovery platform."
     ),
     version="1.0.0",
 )
@@ -60,28 +68,52 @@ app = FastAPI(
 # CORS
 # =========================================================
 #
-# Allow the local Vite frontend to communicate
-# with the FastAPI backend during development.
+# Local development origins remain enabled.
+#
+# Production frontend origins are supplied through:
+#
+# CORS_ALLOWED_ORIGINS=https://your-frontend-domain.com
+#
+# Multiple production origins may be comma-separated.
+#
+# Never use "*" for allow_origins while
+# allow_credentials=True.
 #
 # =========================================================
+
+LOCAL_CORS_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+configured_cors_origins = [
+    origin.strip().rstrip("/")
+    for origin in os.getenv(
+        "CORS_ALLOWED_ORIGINS",
+        "",
+    ).split(",")
+    if origin.strip()
+]
+
+ALLOWED_CORS_ORIGINS = list(
+    dict.fromkeys(
+        [
+            *LOCAL_CORS_ORIGINS,
+            *configured_cors_origins,
+        ]
+    )
+)
 
 app.add_middleware(
     CORSMiddleware,
 
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=ALLOWED_CORS_ORIGINS,
 
     allow_credentials=True,
 
-    allow_methods=[
-        "*"
-    ],
+    allow_methods=["*"],
 
-    allow_headers=[
-        "*"
-    ],
+    allow_headers=["*"],
 )
 
 
@@ -89,13 +121,20 @@ app.add_middleware(
 # ROUTERS
 # =========================================================
 #
-# AI and Razorpay intentionally remain separate.
+# AI router:
 #
-# /api/ai/*
-#     explanation only
+#   /api/ai/*
 #
-# /api/razorpay/*
-#     Razorpay Test Mode gateway operations
+# Application-facing AI reasoning routes require a valid
+# authenticated RecoverAI user.
+#
+#
+# Razorpay router:
+#
+#   /api/razorpay/*
+#
+# Razorpay webhook security remains based on Razorpay
+# signature verification rather than Supabase user auth.
 #
 # =========================================================
 
@@ -111,6 +150,13 @@ app.include_router(
 # =========================================================
 # ROOT
 # =========================================================
+#
+# Lightweight service information endpoint.
+#
+# It does not expose payment, recovery, merchant, user,
+# transaction, or AI reasoning data.
+#
+# =========================================================
 
 @app.get("/")
 def root():
@@ -125,6 +171,18 @@ def root():
 
 # =========================================================
 # HEALTH
+# =========================================================
+#
+# PUBLIC ENDPOINT
+#
+# Used for:
+#
+# - local development
+# - deployment health checks
+# - infrastructure monitoring
+#
+# No private application data is returned.
+#
 # =========================================================
 
 @app.get("/health")
@@ -142,16 +200,26 @@ def health():
 # DASHBOARD
 # =========================================================
 #
-# Current dashboard data is DEMO DATA.
+# AUTHENTICATED ENDPOINT
 #
-# Machine-readable recovery fields are included so the
-# frontend does not need to infer business logic from
-# human-readable failure descriptions.
+# Requires:
+#
+# Authorization: Bearer <Supabase access token>
+#
+# NOTE:
+#
+# Current dashboard values are demo/buildathon data.
 #
 # =========================================================
 
-@app.get("/api/dashboard")
-def get_dashboard():
+@app.get(
+    "/api/dashboard"
+)
+def get_dashboard(
+    _current_user: AuthenticatedUser = Depends(
+        get_current_user,
+    ),
+):
     return {
         "metrics": {
             "revenue_at_risk":
@@ -244,21 +312,23 @@ def get_dashboard():
             },
 
             # -------------------------------------------------
-            # DOCUMENTED BLOCKED DEMO CASE
+            # CANONICAL BLOCKED DEMO CASE
             # -------------------------------------------------
             #
             # retry_count = 2
             # MAX_RETRIES = 2
             #
-            # Expected flow:
+            # Expected pipeline:
             #
             # DETECT
             # CLASSIFY
             # DECIDE
-            # GUARDRAIL - BLOCKED
+            # GUARDRAIL
             #
-            # No EXECUTE
-            # No VERIFY
+            # STOP
+            #
+            # No EXECUTE.
+            # No VERIFY.
             #
             # -------------------------------------------------
 
@@ -343,6 +413,20 @@ def get_dashboard():
 # =========================================================
 # FAILURE CLASSIFICATION
 # =========================================================
+#
+# AUTHENTICATED ENDPOINT
+#
+# Classification remains deterministic.
+#
+# Authentication only controls access.
+#
+# It does not affect:
+#
+# - classification category
+# - classification confidence
+# - failure interpretation
+#
+# =========================================================
 
 @app.post(
     "/api/classify-failure",
@@ -350,6 +434,10 @@ def get_dashboard():
 )
 def classify_payment_failure(
     request: ClassificationRequest,
+
+    _current_user: AuthenticatedUser = Depends(
+        get_current_user,
+    ),
 ):
     return classify_failure(
         request
@@ -359,6 +447,14 @@ def classify_payment_failure(
 # =========================================================
 # RECOVERY DECISION
 # =========================================================
+#
+# AUTHENTICATED ENDPOINT
+#
+# Recovery decisions remain deterministic.
+#
+# The AI explanation layer does not control this endpoint.
+#
+# =========================================================
 
 @app.post(
     "/api/recovery/decide",
@@ -366,6 +462,10 @@ def classify_payment_failure(
 )
 def decide_recovery(
     request: ClassificationRequest,
+
+    _current_user: AuthenticatedUser = Depends(
+        get_current_user,
+    ),
 ):
     return create_recovery_decision(
         request
@@ -375,6 +475,19 @@ def decide_recovery(
 # =========================================================
 # GUARDRAIL EVALUATION
 # =========================================================
+#
+# AUTHENTICATED ENDPOINT
+#
+# Guardrails are authoritative.
+#
+# AI cannot:
+#
+# - override guardrail status
+# - increase retry limits
+# - bypass high-value restrictions
+# - authorize blocked execution
+#
+# =========================================================
 
 @app.post(
     "/api/recovery/guardrails",
@@ -382,6 +495,10 @@ def decide_recovery(
 )
 def check_recovery_guardrails(
     request: ClassificationRequest,
+
+    _current_user: AuthenticatedUser = Depends(
+        get_current_user,
+    ),
 ):
     return evaluate_guardrails(
         request
@@ -392,12 +509,34 @@ def check_recovery_guardrails(
 # RECOVERY EXECUTION
 # =========================================================
 #
+# AUTHENTICATED ENDPOINT
+#
+# This is the sensitive execution boundary.
+#
+# Flow:
+#
+# authenticated user
+#       ↓
+# failure classification
+#       ↓
+# recovery decision
+#       ↓
+# deterministic guardrail
+#       ↓
+# permitted?
+#   ↓           ↓
+#  NO          YES
+#   ↓           ↓
+# STOP       EXECUTE
+#               ↓
+#            VERIFY
+#               ↓
+#             AUDIT
+#
+#
 # IMPORTANT:
 #
-# AI reasoning is NOT called from this endpoint.
-#
-# Financial execution continues to depend only on
-# deterministic RecoverAI services and guardrails.
+# AI reasoning is not an authority in this execution path.
 #
 # =========================================================
 
@@ -407,6 +546,10 @@ def check_recovery_guardrails(
 )
 def execute_payment_recovery(
     request: ClassificationRequest,
+
+    _current_user: AuthenticatedUser = Depends(
+        get_current_user,
+    ),
 ):
     return execute_recovery(
         request
@@ -416,6 +559,31 @@ def execute_payment_recovery(
 # =========================================================
 # AUDIT TRAIL
 # =========================================================
+#
+# AUTHENTICATED ENDPOINT
+#
+# Agent Replay consumes this endpoint.
+#
+# Events originate from the actual recovery pipeline.
+#
+# Canonical successful sequence:
+#
+# DETECT
+# CLASSIFY
+# DECIDE
+# GUARDRAIL
+# EXECUTE
+# VERIFY
+#
+#
+# Canonical blocked sequence:
+#
+# DETECT
+# CLASSIFY
+# DECIDE
+# GUARDRAIL
+#
+# =========================================================
 
 @app.get(
     "/api/recovery/audit/{transaction_id}",
@@ -423,6 +591,10 @@ def execute_payment_recovery(
 )
 def recovery_audit(
     transaction_id: str,
+
+    _current_user: AuthenticatedUser = Depends(
+        get_current_user,
+    ),
 ):
     events = get_audit_trail(
         transaction_id
