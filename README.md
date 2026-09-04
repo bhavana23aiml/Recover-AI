@@ -11,7 +11,28 @@ RecoverAI is a safety-first revenue recovery platform built for the Razorpay AI 
 - Frontend: https://recover-ai-kohl.vercel.app
 - Backend: https://recover-ai-ybxo.onrender.com
 - Health: https://recover-ai-ybxo.onrender.com/health
+## Product Preview
 
+### Command Center
+![RecoverAI Command Center](docs/screenshots/dashboard.png)
+
+### Transaction Intelligence
+![RecoverAI Transactions](docs/screenshots/transactions.png)
+
+### Recovery Agent
+![RecoverAI Recovery Agent](docs/screenshots/RecoveryAgent.png)
+
+### Activity & Audit Trail
+![RecoverAI Activity](docs/screenshots/Activity.png)
+
+### Deterministic Guardrails
+![RecoverAI Guardrails](docs/screenshots/Guardrails.png)
+
+### System Configuration
+![RecoverAI Settings](docs/screenshots/Settings.png)
+
+### Authentication
+![RecoverAI Sign In](docs/screenshots/Signin.png)
 ## Problem
 
 Failed digital payments create recoverable revenue loss, but naive retry systems can introduce duplicate attempts, unsafe retry loops, high-value risk, poor explainability, and weak auditability.
